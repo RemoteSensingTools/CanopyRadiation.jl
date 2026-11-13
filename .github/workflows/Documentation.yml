@@ -1,0 +1,35 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - main
+    tags: '*'
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12'
+      - name: Install Dependencies
+        run: |
+          julia --startup-file=no --project=docs/ -e '
+            using Pkg
+            Pkg.develop([
+              PackageSpec(url = "https://github.com/RemoteSensingTools/CanopyOptics.jl.git", rev = "main"),
+              PackageSpec(path = pwd()),
+            ])
+            Pkg.instantiate()
+          '
+      - name: Build and deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: julia --startup-file=no --project=docs/ docs/make.jl

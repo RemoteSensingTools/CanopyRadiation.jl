@@ -2,8 +2,14 @@ Manifest.toml
 Manifest-v*.toml
 test/Manifest.toml
 test/Manifest-v*.toml
+docs/Manifest.toml
+docs/Manifest-v*.toml
+docs/build/
+docs/site/
 *.cov
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
 .DS_Store
+.claude/
+__pycache__/

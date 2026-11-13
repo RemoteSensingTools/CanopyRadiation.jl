@@ -1,0 +1,9 @@
+[deps]
+CanopyOptics = "a18e34a6-5dbe-4f38-a44b-e5141852e7a7"
+CanopyRadiation = "c28997ff-bb01-467d-a412-f54fde40b11c"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+
+[compat]
+CanopyOptics = "0.2.3"
+Documenter = "1"
+julia = "1.10"
