@@ -1,0 +1,24 @@
+name = "CanopyRadiation"
+uuid = "c28997ff-bb01-467d-a412-f54fde40b11c"
+authors = ["Christian Frankenberg <cfranken@caltech.edu>"]
+version = "0.1.0"
+
+[deps]
+CanopyOptics = "a18e34a6-5dbe-4f38-a44b-e5141852e7a7"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[weakdeps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+
+[extensions]
+CanopyRadiationCUDAExt = "CUDA"
+
+[compat]
+CUDA = "5.5, 6"
+CanopyOptics = "0.2.3"
+Distributions = "0.25"
+KernelAbstractions = "0.9, 0.10"
+LinearAlgebra = "1"
+julia = "1.10"

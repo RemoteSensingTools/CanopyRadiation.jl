@@ -1,0 +1,9 @@
+Manifest.toml
+Manifest-v*.toml
+test/Manifest.toml
+test/Manifest-v*.toml
+*.cov
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+.DS_Store
