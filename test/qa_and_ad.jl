@@ -14,9 +14,12 @@ using Test
     @test check_no_implicit_imports(CanopyRadiation) === nothing
     @test check_no_stale_explicit_imports(CanopyRadiation) === nothing
     @test check_all_explicit_imports_via_owners(CanopyRadiation) === nothing
-    @test check_all_explicit_imports_are_public(CanopyRadiation) === nothing
     @test check_all_qualified_accesses_via_owners(CanopyRadiation) === nothing
-    @test check_all_qualified_accesses_are_public(CanopyRadiation) === nothing
+    @test check_no_self_qualified_accesses(CanopyRadiation) === nothing
+    @static if VERSION >= v"1.11"
+        @test check_all_explicit_imports_are_public(CanopyRadiation) === nothing
+        @test check_all_qualified_accesses_are_public(CanopyRadiation) === nothing
+    end
 
     @static if isdefined(Docs, :undocumented_names)
         @test isempty(Docs.undocumented_names(CanopyRadiation))
