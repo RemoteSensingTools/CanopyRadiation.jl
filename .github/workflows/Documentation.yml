@@ -24,7 +24,7 @@ jobs:
           julia --startup-file=no --project=docs/ -e '
             using Pkg
             Pkg.develop([
-              PackageSpec(url = "https://github.com/RemoteSensingTools/CanopyOptics.jl.git", rev = "main"),
+              PackageSpec(url = "https://github.com/RemoteSensingTools/CanopyOptics.jl.git"),
               PackageSpec(path = pwd()),
             ])
             Pkg.instantiate()

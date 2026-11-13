@@ -30,7 +30,7 @@ jobs:
             using Pkg
             Pkg.activate(temp = true)
             Pkg.develop([
-              PackageSpec(url = "https://github.com/RemoteSensingTools/CanopyOptics.jl.git", rev = "main"),
+              PackageSpec(url = "https://github.com/RemoteSensingTools/CanopyOptics.jl.git"),
               PackageSpec(path = pwd()),
             ])
             Pkg.test("CanopyRadiation")
