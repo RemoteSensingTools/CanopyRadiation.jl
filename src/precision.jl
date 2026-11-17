@@ -3,9 +3,9 @@
 # ============================================================================
 #
 # The five hooks are exact for plain floating-point numbers. A number type that
-# carries derivative information (ForwardDiff.Dual through the package extension
-# CanopyRadiationForwardDiffExt) overloads them; the code converted to this policy
-# (two_stream.jl, emission_transport.jl, the column sweeps and batch kernels)
+# carries derivative information overloads them (for ForwardDiff.Dual a package
+# extension, or the tests when no extension is present); the code converted to this
+# policy (two_stream.jl, emission_transport.jl, column_sweeps.jl, column_batch.jl)
 # inspects the internals of a scalar type nowhere else. The remaining files still use
 # the reflection helpers in scalars.jl.
 
