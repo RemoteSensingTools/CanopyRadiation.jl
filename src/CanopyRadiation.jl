@@ -23,11 +23,13 @@ Source files, one per process or software boundary:
   `column_batch.jl`: `KernelAbstractions` batch column kernels.
 - `leaf_face_absorption.jl`: beam and isotropic absorption by the leaf faces;
   `leaf_population.jl`: depth and leaf-orientation quadrature of leaf
-  populations; `emission_angular_law.jl`: angular emission laws of the leaf faces
-  and the depth sources they give; `atmosphere_coupling.jl`: emission boundary
-  coupled to a source-free atmosphere.
-- `leaf_spectral_emission.jl`: leaf spectral escape matrices and photon unit
-  conversions; `spectral_basis.jl`: spectral grid maps and excitation bases.
+  populations; `emission_angular_law.jl`: angular emission laws of the leaf faces;
+  `population_emission.jl`: depth sources assembled from the face emission of a
+  leaf population; `atmosphere_coupling.jl`: emission boundary coupled to a
+  source-free atmosphere.
+- `leaf_spectral_emission.jl`: leaf spectral escape matrices; `photon_units.jl`:
+  photon bins, densities and energies per spectral row; `spectral_basis.jl`:
+  spectral grid maps and excitation bases.
 - `hemispheric_moments.jl`: hemisphere moments and their expansion into depth
   sources (scalar functions and batch kernels); `sif_assembly.jl`: layer
   hemispheric sources and canopy SIF evaluation; `device_storage.jl`: transfer of
@@ -77,8 +79,10 @@ include("column_batch.jl")
 include("leaf_face_absorption.jl")
 include("leaf_population.jl")
 include("emission_angular_law.jl")
+include("population_emission.jl")
 include("atmosphere_coupling.jl")
 include("leaf_spectral_emission.jl")
+include("photon_units.jl")
 include("spectral_basis.jl")
 include("hemispheric_moments.jl")
 include("sif_assembly.jl")

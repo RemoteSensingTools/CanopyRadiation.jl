@@ -29,6 +29,15 @@ Order = [:type, :function]
 Private = false
 ```
 
+## Population Emission Assembly (Depth Sources)
+
+```@autodocs
+Modules = [CanopyRadiation]
+Pages = ["population_emission.jl"]
+Order = [:type, :function]
+Private = false
+```
+
 ## Canopy-Atmosphere Emission Coupling
 
 ```@autodocs
@@ -47,5 +56,13 @@ CanopyRadiation.unit_sin_from_cos
 ```@autodocs
 Modules = [CanopyRadiation]
 Pages = ["leaf_spectral_emission.jl"]
+Order = [:type, :function]
+```
+
+## Photon Unit Conversions
+
+```@autodocs
+Modules = [CanopyRadiation]
+Pages = ["photon_units.jl"]
 Order = [:type, :function]
 ```
