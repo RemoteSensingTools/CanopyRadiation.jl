@@ -31,10 +31,23 @@ using LinearAlgebra: I, lu, mul!
 
 import Base.Broadcast: broadcastable
 
+# Scalar hooks for number types with derivative information (public, not exported)
 @static if VERSION >= v"1.11"
-    eval(Expr(:public, :unit_sin_from_cos))
+    eval(
+        Expr(
+            :public,
+            :unit_sin_from_cos,
+            :primal_type,
+            :primal,
+            :all_finite,
+            :exact_zero,
+            :scalar_equal,
+        ),
+    )
 end
 
+include("precision.jl")
+include("records.jl")
 include("scalars.jl")
 include("two_stream.jl")
 include("emission_transport.jl")

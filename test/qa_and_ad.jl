@@ -8,6 +8,8 @@ using LinearAlgebra
 using OffsetArrays
 using Test
 
+include("forwarddiff_hooks.jl")
+
 @testset "Package QA (Aqua, ExplicitImports, Docs, Doctests)" begin
     Aqua.test_all(CanopyRadiation; ambiguities = true)
 
@@ -38,18 +40,21 @@ end
     mkdual(v, p) = ForwardDiff.Dual{Nothing}(v, p)
     discrete_dual = ForwardDiff.Dual{Nothing}(1, 1)
 
+    # Functions under the precision policy (two_stream.jl, emission_transport.jl)
+    # reject non-floating-point scalars with an ArgumentError; unit_sin_from_cos
+    # (scalars.jl, not yet converted) still with a MethodError.
     for bad in (true, 1, 1 // 2, pi, discrete_dual)
-        @test_throws MethodError CanopyRates(bad, bad, bad, bad, bad)
-        @test_throws MethodError LayerOperator(bad, bad, bad, bad, bad)
-        @test_throws MethodError UniformEmission(bad, bad)
-        @test_throws MethodError diffuse_response(bad, bad, bad)
+        @test_throws ArgumentError CanopyRates(bad, bad, bad, bad, bad)
+        @test_throws ArgumentError LayerOperator(bad, bad, bad, bad, bad)
+        @test_throws ArgumentError UniformEmission(bad, bad)
+        @test_throws ArgumentError diffuse_response(bad, bad, bad)
         @test_throws MethodError CanopyRadiation.unit_sin_from_cos(bad)
     end
 
-    # Mixed Float32 + Float64 rejected via MethodError
-    @test_throws MethodError CanopyRates(0.1f0, 0.1, 0.05, 0.05, 0.5)
-    @test_throws MethodError diffuse_response(0.1f0, 0.1, 1.0)
-    @test_throws MethodError solve_column(
+    # Mixed Float32 + Float64 rejected via ArgumentError (precision policy)
+    @test_throws ArgumentError CanopyRates(0.1f0, 0.1, 0.05, 0.05, 0.5)
+    @test_throws ArgumentError diffuse_response(0.1f0, 0.1, 1.0)
+    @test_throws ArgumentError solve_column(
         (LayerOperator(0.1f0, 0.5f0, 0.05f0, 0.05f0, 0.6f0),),
         1.0,
         0.2,

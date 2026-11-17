@@ -120,10 +120,6 @@ end
     end
 end
 
-@inline _host_linear(A::Array) = A
-@inline _host_linear(A::SubArray{<:Any,<:Any,<:Array}) = A
-@inline _host_linear(A::AbstractArray{T}) where {T} = copyto!(Vector{T}(undef, length(A)), A)
-
 function _hash_array(A::AbstractArray, h::UInt)
     h = hash(axes(A), h)
     host = _host_linear(A)
@@ -178,45 +174,6 @@ end
     t = sum + term
     comp += ifelse(abs(sum) >= abs(term), (sum - t) + term, (term - t) + sum)
     return t, comp
-end
-
-@inline function even_cosh_c0(q::FT) where {FT<:Real}
-    r = one(FT)
-    r = one(FT) + q * r * inv(FT(240))
-    r = one(FT) + q * r * inv(FT(182))
-    r = one(FT) + q * r * inv(FT(132))
-    r = one(FT) + q * r * inv(FT(90))
-    r = one(FT) + q * r * inv(FT(56))
-    r = one(FT) + q * r * inv(FT(30))
-    r = one(FT) + q * r * inv(FT(12))
-    r = one(FT) + q * r * inv(FT(2))
-    return r
-end
-
-@inline function even_sinh_s0(q::FT) where {FT<:Real}
-    r = one(FT)
-    r = one(FT) + q * r * inv(FT(272))
-    r = one(FT) + q * r * inv(FT(210))
-    r = one(FT) + q * r * inv(FT(156))
-    r = one(FT) + q * r * inv(FT(110))
-    r = one(FT) + q * r * inv(FT(72))
-    r = one(FT) + q * r * inv(FT(42))
-    r = one(FT) + q * r * inv(FT(20))
-    r = one(FT) + q * r * inv(FT(6))
-    return r
-end
-
-@inline function even_cosh_m1_s1(q::FT) where {FT<:Real}
-    r = one(FT)
-    r = one(FT) + q * r * inv(FT(306))
-    r = one(FT) + q * r * inv(FT(240))
-    r = one(FT) + q * r * inv(FT(182))
-    r = one(FT) + q * r * inv(FT(132))
-    r = one(FT) + q * r * inv(FT(90))
-    r = one(FT) + q * r * inv(FT(56))
-    r = one(FT) + q * r * inv(FT(30))
-    r = one(FT) + q * r * inv(FT(12))
-    return inv(FT(2)) * r
 end
 
 @inline _index_sets_overlap(i::Integer, j::Integer) = i == j

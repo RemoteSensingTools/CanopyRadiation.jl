@@ -5,7 +5,7 @@ Supertype for internal hemispheric volume-emission closures within a canopy
 layer ([`NoEmission`](@ref), [`UniformEmission`](@ref), and
 [`QuadratureEmission`](@ref)).
 """
-abstract type AbstractVolumeEmission end
+abstract type AbstractVolumeEmission <: RadiationRecord end
 
 """
     NoEmission()
@@ -19,8 +19,6 @@ NoEmission()
 ```
 """
 struct NoEmission <: AbstractVolumeEmission end
-
-broadcastable(e::NoEmission) = Ref(e)
 
 """
     UniformEmission(upward, downward)
@@ -39,43 +37,23 @@ struct UniformEmission{FT<:Real} <: AbstractVolumeEmission
     downward::FT
 
     function UniformEmission{FT}(upward::FT, downward::FT) where {FT<:Real}
-        require_continuous_scalar(FT, UniformEmission, (upward, downward))
+        same_precision(upward)
         return new{FT}(upward, downward)
     end
 end
 
-@inline UniformEmission(upward::FT, downward::FT) where {FT<:Real} =
-    UniformEmission{FT}(upward, downward)
-
 @inline function UniformEmission(upward::Real, downward::Real)
-    FT = promote_compatible_scalar(UniformEmission, upward, downward)
+    FT = common_scalar_type(upward, downward)
     return UniformEmission{FT}(convert(FT, upward), convert(FT, downward))
 end
 
-Base.eltype(::Type{UniformEmission{FT}}) where {FT} = FT
-Base.eltype(e::UniformEmission) = typeof(e.upward)
-broadcastable(e::UniformEmission) = Ref(e)
+Base.eltype(::Type{<:UniformEmission{FT}}) where {FT} = FT
+Base.convert(::Type{UniformEmission{FT}}, e::UniformEmission) where {FT} =
+    _convert_record(UniformEmission{FT}, e)
 
-function Base.convert(::Type{UniformEmission{FT}}, e::UniformEmission{FT}) where {FT<:Real}
-    require_continuous_scalar(FT, convert, (UniformEmission{FT}, e))
-    return e
-end
-function Base.convert(::Type{UniformEmission{FT}}, e::UniformEmission{S}) where {FT<:Real,S<:Real}
-    compatible_scalar(FT, S) === Union{} &&
-        throw(MethodError(convert, (UniformEmission{FT}, e)))
-    return UniformEmission{FT}(convert(FT, e.upward), convert(FT, e.downward))
-end
-
-Base.:(==)(a::UniformEmission, b::UniformEmission) =
-    (a.upward == b.upward) && (a.downward == b.downward)
-Base.isequal(a::UniformEmission, b::UniformEmission) =
-    isequal(a.upward, b.upward) && isequal(a.downward, b.downward)
-
-function Base.hash(e::UniformEmission, h::UInt)
-    h = hash(:UniformEmission, h)
-    h = _hash_scalar(e.upward, h)
-    return _hash_scalar(e.downward, h)
-end
+# Volume emission entering the precision of a layer computation (none for NoEmission).
+@inline _precision_operands(::NoEmission) = ()
+@inline _precision_operands(e::UniformEmission) = (e,)
 
 """
     QuadratureEmission(depths, weights, upward, downward)
@@ -84,8 +62,9 @@ Represent a depth-varying hemispheric emission source sampled at unit-interval
 fractional depths `depths ∈ [0, 1]` with quadrature `weights` and per-`LAI`
 hemispheric source densities `upward` and `downward`.
 
-All four vectors must share identical axes and continuous scalar element type
-`FT`, with finite nonnegative weights and source strengths.
+All four vectors must share identical axes and one floating-point element type
+`FT`, with finite nonnegative weights and source strengths (`ArgumentError`
+otherwise). `validate = false` skips the value checks (used for device transfers).
 
 # Examples
 ```jldoctest
@@ -108,19 +87,20 @@ struct QuadratureEmission{FT<:Real,V<:AbstractVector{FT}} <: AbstractVolumeEmiss
         downward::V;
         validate::Bool = true,
     ) where {FT<:Real,V<:AbstractVector{FT}}
-        require_continuous_scalar(FT, QuadratureEmission, (depths, weights, upward, downward))
+        same_precision(depths)
         axes(depths) == axes(weights) == axes(upward) == axes(downward) ||
             throw(DimensionMismatch("Source depths, weights, and strengths must share axes"))
         if validate
-            P = primal_float_type(FT)
             for x in _host_linear(depths)
-                finite_scalar(x) && zero(P) <= primal_scalar(x) <= one(P) ||
-                    throw(ArgumentError("Source depths must be finite and lie in [0, 1]"))
+                _checked(x, _unit_interval, "Source depths must be finite and lie in [0, 1]")
             end
             for vec in (weights, upward, downward)
                 for x in _host_linear(vec)
-                    finite_scalar(x) && primal_scalar(x) >= zero(P) ||
-                        throw(ArgumentError("Source weights and strengths must be finite and nonnegative"))
+                    _checked(
+                        x,
+                        _nonnegative,
+                        "Source weights and strengths must be finite and nonnegative",
+                    )
                 end
             end
         end
@@ -129,27 +109,6 @@ struct QuadratureEmission{FT<:Real,V<:AbstractVector{FT}} <: AbstractVolumeEmiss
 end
 
 Base.eltype(::Type{<:QuadratureEmission{FT}}) where {FT} = FT
-Base.eltype(q::QuadratureEmission) = eltype(q.depths)
-Base.:(==)(a::QuadratureEmission, b::QuadratureEmission) =
-    axes(a.depths) == axes(b.depths) &&
-    a.depths == b.depths &&
-    a.weights == b.weights &&
-    a.upward == b.upward &&
-    a.downward == b.downward
-
-Base.isequal(a::QuadratureEmission, b::QuadratureEmission) =
-    _isequal_array(a.depths, b.depths) &&
-    _isequal_array(a.weights, b.weights) &&
-    _isequal_array(a.upward, b.upward) &&
-    _isequal_array(a.downward, b.downward)
-
-function Base.hash(q::QuadratureEmission, h::UInt)
-    h = hash(:QuadratureEmission, h)
-    h = _hash_array(q.depths, h)
-    h = _hash_array(q.weights, h)
-    h = _hash_array(q.upward, h)
-    return _hash_array(q.downward, h)
-end
 
 """
     EmittingLayer(passive::LayerOperator, upward, downward, generated)
@@ -166,7 +125,7 @@ julia> isapprox(el.generated, 0.6; atol = 1e-15)
 true
 ```
 """
-struct EmittingLayer{FT<:Real}
+struct EmittingLayer{FT<:Real} <: RadiationRecord
     passive::LayerOperator{FT}
     upward::FT
     downward::FT
@@ -178,18 +137,9 @@ struct EmittingLayer{FT<:Real}
         downward::FT,
         generated::FT,
     ) where {FT<:Real}
-        require_continuous_scalar(FT, EmittingLayer, (passive, upward, downward, generated))
+        same_precision(upward)
         return new{FT}(passive, upward, downward, generated)
     end
-end
-
-@inline function EmittingLayer(
-    passive::LayerOperator{FT},
-    upward::FT,
-    downward::FT,
-    generated::FT,
-) where {FT<:Real}
-    return EmittingLayer{FT}(passive, upward, downward, generated)
 end
 
 @inline function EmittingLayer(
@@ -198,13 +148,7 @@ end
     downward::Real,
     generated::Real,
 )
-    FT = promote_compatible_scalar(
-        EmittingLayer,
-        passive.reflection,
-        upward,
-        downward,
-        generated,
-    )
+    FT = common_scalar_type(passive, upward, downward, generated)
     return EmittingLayer{FT}(
         convert(LayerOperator{FT}, passive),
         convert(FT, upward),
@@ -213,44 +157,9 @@ end
     )
 end
 
-Base.eltype(::Type{EmittingLayer{FT}}) where {FT} = FT
-Base.eltype(e::EmittingLayer) = typeof(e.upward)
-broadcastable(e::EmittingLayer) = Ref(e)
-
-function Base.convert(::Type{EmittingLayer{FT}}, e::EmittingLayer{FT}) where {FT<:Real}
-    require_continuous_scalar(FT, convert, (EmittingLayer{FT}, e))
-    return e
-end
-function Base.convert(::Type{EmittingLayer{FT}}, e::EmittingLayer{S}) where {FT<:Real,S<:Real}
-    compatible_scalar(FT, S) === Union{} &&
-        throw(MethodError(convert, (EmittingLayer{FT}, e)))
-    return EmittingLayer{FT}(
-        convert(LayerOperator{FT}, e.passive),
-        convert(FT, e.upward),
-        convert(FT, e.downward),
-        convert(FT, e.generated),
-    )
-end
-
-Base.:(==)(a::EmittingLayer, b::EmittingLayer) =
-    (a.passive == b.passive) &&
-    (a.upward == b.upward) &&
-    (a.downward == b.downward) &&
-    (a.generated == b.generated)
-
-Base.isequal(a::EmittingLayer, b::EmittingLayer) =
-    isequal(a.passive, b.passive) &&
-    isequal(a.upward, b.upward) &&
-    isequal(a.downward, b.downward) &&
-    isequal(a.generated, b.generated)
-
-function Base.hash(e::EmittingLayer, h::UInt)
-    h = hash(:EmittingLayer, h)
-    h = hash(e.passive, h)
-    h = _hash_scalar(e.upward, h)
-    h = _hash_scalar(e.downward, h)
-    return _hash_scalar(e.generated, h)
-end
+Base.eltype(::Type{<:EmittingLayer{FT}}) where {FT} = FT
+Base.convert(::Type{EmittingLayer{FT}}, e::EmittingLayer) where {FT} =
+    _convert_record(EmittingLayer{FT}, e)
 
 """
     point_emission_response(absorption, backscatter, lai, x, upward, downward)
@@ -276,15 +185,7 @@ true
     upward::Real,
     downward::Real,
 )
-    FT = promote_compatible_scalar(
-        point_emission_response,
-        absorption,
-        backscatter,
-        lai,
-        x,
-        upward,
-        downward,
-    )
+    FT = common_scalar_type(absorption, backscatter, lai, x, upward, downward)
     return _point_emission_response(
         convert(FT, absorption),
         convert(FT, backscatter),
@@ -295,14 +196,9 @@ true
     )
 end
 
-@inline function _point_emission_response(
-    absorption::FT,
-    backscatter::FT,
-    lai::FT,
-    x::FT,
-    upward::FT,
-    downward::FT,
-) where {FT<:Real}
+# Arguments of one scalar type (checked and converted by the caller).
+@inline function _point_emission_response(absorption, backscatter, lai, x, upward, downward)
+    FT = typeof(lai)
     upper = _diffuse_response(absorption, backscatter, x)
     lower = _diffuse_response(absorption, backscatter, lai - x)
     inverse = inv(one(FT) - upper.reflection * lower.reflection)
@@ -341,16 +237,7 @@ true
 )
     axes(depths) == axes(weights) == axes(upward) == axes(downward) ||
         throw(DimensionMismatch("Quadrature source vectors must share axes"))
-    FT = promote_compatible_scalar(
-        quadrature_emitting_layer,
-        absorption,
-        backscatter,
-        lai,
-        zero(eltype(depths)),
-        zero(eltype(weights)),
-        zero(eltype(upward)),
-        zero(eltype(downward)),
-    )
+    FT = common_scalar_type(absorption, backscatter, lai, depths, weights, upward, downward)
     abs_f = convert(FT, absorption)
     back_f = convert(FT, backscatter)
     lai_f = convert(FT, lai)
@@ -397,7 +284,7 @@ true
     lai::Real,
     ::NoEmission,
 )
-    FT = promote_compatible_scalar(emitting_layer, absorption, backscatter, lai)
+    FT = common_scalar_type(absorption, backscatter, lai)
     p = _diffuse_response(convert(FT, absorption), convert(FT, backscatter), convert(FT, lai))
     passive = LayerOperator{FT}(p.reflection, p.transmission, zero(FT), zero(FT), one(FT))
     return EmittingLayer{FT}(passive, zero(FT), zero(FT), zero(FT))
@@ -409,14 +296,7 @@ end
     lai::Real,
     emission::UniformEmission,
 )
-    FT = promote_compatible_scalar(
-        emitting_layer,
-        absorption,
-        backscatter,
-        lai,
-        emission.upward,
-        emission.downward,
-    )
+    FT = common_scalar_type(absorption, backscatter, lai, emission)
     abs_f = convert(FT, absorption)
     b = convert(FT, backscatter)
     lai_f = convert(FT, lai)
@@ -477,11 +357,7 @@ struct EmittingColumnWorkspace{FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{
         net_layer::A,
         absorption::A,
     ) where {FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{FT}}
-        require_continuous_scalar(
-            FT,
-            EmittingColumnWorkspace,
-            (down, up, net_layer, absorption),
-        )
+        same_precision(down)
         axes(down) == axes(up) ||
             throw(DimensionMismatch("EmittingColumnWorkspace down and up must share axes"))
         axes(net_layer) == axes(absorption) ||
@@ -494,7 +370,7 @@ struct EmittingColumnWorkspace{FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{
 end
 
 function EmittingColumnWorkspace(::Type{FT}, n_layers::Integer) where {FT<:Real}
-    require_continuous_scalar(FT, EmittingColumnWorkspace, (FT, n_layers))
+    same_precision(zero(FT))
     n_layers >= 0 || throw(ArgumentError("n_layers must be nonnegative"))
     n = Int(n_layers)
     return EmittingColumnWorkspace(
@@ -506,7 +382,6 @@ function EmittingColumnWorkspace(::Type{FT}, n_layers::Integer) where {FT<:Real}
 end
 
 Base.eltype(::Type{<:EmittingColumnWorkspace{FT}}) where {FT} = FT
-Base.eltype(ws::EmittingColumnWorkspace) = eltype(ws.down)
 
 """
     solve_emitting_column!(ws::EmittingColumnWorkspace, layers::AbstractVector{<:EmittingLayer}, down_top, soil_reflect, soil_emit)
@@ -518,23 +393,19 @@ and upward ground emission `soil_emit` into `ws` with zero scratch allocations.
 Return `(; down, up, net_layer, absorption, net_soil, ground_absorbed, generated)`
 satisfying both net divergence balance (`down_top - up[1] == sum(net_layer) + net_soil`)
 and gross radiative balance (`down_top + generated + soil_emit == up[1] + sum(absorption) + ground_absorbed`).
+
+The inputs must have the precision of `ws` and promote to its element type
+(`ArgumentError` otherwise).
 """
 @inline function solve_emitting_column!(
-    ws::EmittingColumnWorkspace{FT},
+    ws::EmittingColumnWorkspace,
     layers::AbstractVector{<:EmittingLayer},
     down_top::Real,
     soil_reflect::Real,
     soil_emit::Real,
-) where {FT<:Real}
-    FT2 = promote_compatible_scalar(
-        solve_emitting_column!,
-        zero(FT),
-        zero(eltype(eltype(layers))),
-        down_top,
-        soil_reflect,
-        soil_emit,
-    )
-    FT2 === FT ||
+)
+    FT = eltype(ws)
+    common_scalar_type(ws.down, layers, down_top, soil_reflect, soil_emit) === FT ||
         throw(ArgumentError("EmittingColumnWorkspace element type must match promoted input type"))
     n = length(layers)
     length(ws.absorption) == n ||
@@ -595,31 +466,6 @@ and gross radiative balance (`down_top + generated + soil_emit == up[1] + sum(ab
     )
 end
 
-@inline _promote_emitting_layers(f, ::Tuple{}, ::Type{FT}) where {FT<:Real} = FT
-@inline function _promote_emitting_layers(
-    f,
-    layers::Tuple{EmittingLayer,Vararg{EmittingLayer}},
-    ::Type{FT},
-) where {FT<:Real}
-    FT2 = promote_compatible_scalar(f, zero(FT), first(layers).upward)
-    return _promote_emitting_layers(f, Base.tail(layers), FT2)
-end
-
-@inline _convert_emitting_layers(::Type{FT}, ::Tuple{}) where {FT<:Real} = ()
-@inline _convert_emitting_layers(
-    ::Type{FT},
-    layers::NTuple{N,EmittingLayer{FT}},
-) where {N,FT<:Real} = layers
-@inline function _convert_emitting_layers(
-    ::Type{FT},
-    layers::Tuple{EmittingLayer,Vararg{EmittingLayer}},
-) where {FT<:Real}
-    return (
-        convert(EmittingLayer{FT}, first(layers)),
-        _convert_emitting_layers(FT, Base.tail(layers))...,
-    )
-end
-
 """
     solve_emitting_column(layers, down_top, soil_reflect, soil_emit)
 
@@ -646,12 +492,7 @@ true
     soil_reflect::Real,
     soil_emit::Real,
 )
-    FT0 = promote_compatible_scalar(
-        solve_emitting_column,
-        down_top,
-        soil_reflect,
-        soil_emit,
-    )
+    FT0 = common_scalar_type(down_top, soil_reflect, soil_emit)
     dt0 = convert(FT0, down_top)
     sr0 = convert(FT0, soil_reflect)
     se0 = convert(FT0, soil_emit)
@@ -673,17 +514,9 @@ end
     soil_reflect::Real,
     soil_emit::Real,
 )
-    FT0 = promote_compatible_scalar(
-        solve_emitting_column,
-        first(layers).upward,
-        down_top,
-        soil_reflect,
-        soil_emit,
-    )
-    FT = _promote_emitting_layers(solve_emitting_column, Base.tail(layers), FT0)
-    els = _convert_emitting_layers(FT, layers)
+    FT = common_scalar_type(_precision_operands(layers)..., down_top, soil_reflect, soil_emit)
     return _solve_emitting_column_tuple(
-        els,
+        _convert_tuple(EmittingLayer{FT}, layers),
         convert(FT, down_top),
         convert(FT, soil_reflect),
         convert(FT, soil_emit),
@@ -780,13 +613,7 @@ function solve_emitting_column(
     soil_reflect::Real,
     soil_emit::Real,
 )
-    FT = promote_compatible_scalar(
-        solve_emitting_column,
-        zero(eltype(eltype(layers))),
-        down_top,
-        soil_reflect,
-        soil_emit,
-    )
+    FT = common_scalar_type(layers, down_top, soil_reflect, soil_emit)
     ws = EmittingColumnWorkspace(FT, length(layers))
     return solve_emitting_column!(ws, layers, down_top, soil_reflect, soil_emit)
 end
@@ -814,7 +641,7 @@ true
     ::Tuple{},
     soil_reflect::Real,
 )
-    FT0 = promote_compatible_scalar(solve_emission, soil_reflect)
+    FT0 = common_scalar_type(soil_reflect)
     z0 = zero(FT0)
     return (; down = (z0,), up = (z0,), absorption = (), ground = z0, generated = z0)
 end
@@ -823,10 +650,8 @@ end
     layers::Tuple{EmittingLayer,Vararg{EmittingLayer}},
     soil_reflect::Real,
 )
-    FT0 = promote_compatible_scalar(solve_emission, first(layers).upward, soil_reflect)
-    FT = _promote_emitting_layers(solve_emission, Base.tail(layers), FT0)
-    els = _convert_emitting_layers(FT, layers)
-    return _solve_emission_tuple(els, convert(FT, soil_reflect))
+    FT = common_scalar_type(_precision_operands(layers)..., soil_reflect)
+    return _solve_emission_tuple(_convert_tuple(EmittingLayer{FT}, layers), convert(FT, soil_reflect))
 end
 
 @inline function _solve_emission_tuple(
@@ -852,11 +677,7 @@ end
 end
 
 function solve_emission(layers::AbstractVector{<:EmittingLayer}, soil_reflect::Real)
-    FT = promote_compatible_scalar(
-        solve_emission,
-        zero(eltype(eltype(layers))),
-        soil_reflect,
-    )
+    FT = common_scalar_type(layers, soil_reflect)
     res = solve_emitting_column(layers, zero(FT), convert(FT, soil_reflect), zero(FT))
     return (;
         down = res.down,
@@ -893,16 +714,7 @@ true
     upward::Real,
     downward::Real,
 )
-    FT = promote_compatible_scalar(
-        point_emission_interior,
-        absorption,
-        backscatter,
-        lai,
-        source_depth,
-        x,
-        upward,
-        downward,
-    )
+    FT = common_scalar_type(absorption, backscatter, lai, source_depth, x, upward, downward)
     abs_f = convert(FT, absorption)
     back_f = convert(FT, backscatter)
     lai_f = convert(FT, lai)
@@ -911,7 +723,7 @@ true
     up_f = convert(FT, upward)
     dn_f = convert(FT, downward)
     resp = _point_emission_response(abs_f, back_f, lai_f, sd_f, up_f, dn_f)
-    if primal_scalar(x_f) <= primal_scalar(sd_f)
+    if primal(x_f) <= primal(sd_f)
         return emission_interior(
             abs_f,
             back_f,
@@ -963,37 +775,23 @@ true
     down_top::Real,
     up_bottom::Real,
 )
-    FT = if emission isa UniformEmission
-        promote_compatible_scalar(
-            emission_interior,
-            absorption,
-            backscatter,
-            lai,
-            x,
-            emission.upward,
-            down_top,
-            up_bottom,
-        )
-    else
-        promote_compatible_scalar(
-            emission_interior,
-            absorption,
-            backscatter,
-            lai,
-            x,
-            down_top,
-            up_bottom,
-        )
-    end
+    FT = common_scalar_type(
+        absorption,
+        backscatter,
+        lai,
+        x,
+        _precision_operands(emission)...,
+        down_top,
+        up_bottom,
+    )
     abs_f = convert(FT, absorption)
     back_f = convert(FT, backscatter)
     lai_f = convert(FT, lai)
     x_f = convert(FT, x)
     dt_f = convert(FT, down_top)
     ub_f = convert(FT, up_bottom)
-    em_f = emission isa UniformEmission ? convert(UniformEmission{FT}, emission) : emission
-    upper = emitting_layer(abs_f, back_f, x_f, em_f)
-    lower = emitting_layer(abs_f, back_f, lai_f - x_f, em_f)
+    upper = emitting_layer(abs_f, back_f, x_f, emission)
+    lower = emitting_layer(abs_f, back_f, lai_f - x_f, emission)
     p, q = upper.passive, lower.passive
     lower_source = q.transmission * ub_f + lower.upward
     down =
@@ -1012,16 +810,7 @@ end
     down_top::Real,
     up_bottom::Real,
 )
-    FT = promote_compatible_scalar(
-        emission_interior,
-        absorption,
-        backscatter,
-        lai,
-        x,
-        zero(eltype(source)),
-        down_top,
-        up_bottom,
-    )
+    FT = common_scalar_type(absorption, backscatter, lai, x, source, down_top, up_bottom)
     abs_f = convert(FT, absorption)
     back_f = convert(FT, backscatter)
     lai_f = convert(FT, lai)

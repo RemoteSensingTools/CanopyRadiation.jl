@@ -937,7 +937,7 @@ function batch_solve_columns!(
     diffuse_top::AbstractVector{FT},
     soil::AbstractVector{FT},
 ) where {FT<:Real}
-    require_continuous_scalar(FT, batch_solve_columns!, (down_out,))
+    same_precision(down_out)
     ax_lay, ax_b = axes(reflection)
     n_layers, n_batch = size(reflection)
     axes(transmission) == axes(beam_up) == axes(beam_down) == axes(beam_trans) == (ax_lay, ax_b) &&
@@ -1080,7 +1080,7 @@ function batch_solve_emitting_columns!(
     soil_reflect::AbstractVector{FT},
     soil_emit::AbstractVector{FT},
 ) where {FT<:Real}
-    require_continuous_scalar(FT, batch_solve_emitting_columns!, (down_out,))
+    same_precision(down_out)
     ax_lay, ax_b = axes(reflection)
     n_layers, n_batch = size(reflection)
     axes(transmission) == axes(emit_up) == axes(emit_down) == axes(emit_gen) == (ax_lay, ax_b) &&

@@ -5,6 +5,7 @@ using OffsetArrays
 using Test
 
 include("qa_and_ad.jl")
+include("precision_and_records.jl")
 include("frozen_record.jl")
 
 @testset "0-ULP donor parity, Native vs Analytic two-stream, and 7-field cavity conservation" begin

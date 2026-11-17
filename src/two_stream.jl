@@ -4,7 +4,7 @@
 Supertype for homogeneous-slab two-stream operator closures
 ([`NativeTwoStream`](@ref) and [`AnalyticTwoStream`](@ref)).
 """
-abstract type AbstractTwoStreamMethod end
+abstract type AbstractTwoStreamMethod <: RadiationRecord end
 
 """
     NativeTwoStream(thin_norm, source_terms)
@@ -15,7 +15,8 @@ homogeneous two-stream canopy layers.
 
 `thin_norm` bounds the dimensionless sub-slab norm `h * max(a + b, k)` prior to
 repeated doubling, and `source_terms` sets the Taylor order for the direct-beam
-source column on the thin sub-slab.
+source column on the thin sub-slab. `thin_norm` must be a finite positive
+floating-point number (`ArgumentError` otherwise).
 
 # Examples
 ```jldoctest
@@ -27,40 +28,25 @@ struct NativeTwoStream{FT<:Real} <: AbstractTwoStreamMethod
     thin_norm::FT
     source_terms::Int
 
-    function NativeTwoStream(thin_norm::FT, source_terms::Integer) where {FT<:Real}
-        require_continuous_scalar(FT, NativeTwoStream, (thin_norm, source_terms))
-        P = primal_float_type(FT)
-        finite_scalar(thin_norm) && primal_scalar(thin_norm) > zero(P) ||
-            throw(ArgumentError("NativeTwoStream thin_norm must be finite and positive"))
+    function NativeTwoStream(thin_norm::Real, source_terms::Integer)
+        same_precision(thin_norm)
+        _checked(thin_norm, _positive, "NativeTwoStream thin_norm must be finite and positive")
         source_terms > 0 ||
             throw(ArgumentError("NativeTwoStream source_terms must be positive"))
-        return new{FT}(thin_norm, Int(source_terms))
+        return new{typeof(thin_norm)}(thin_norm, Int(source_terms))
     end
 end
 
 function NativeTwoStream(
     ::Type{FT} = Float64;
-    thin_norm::Real = primal_float_type(FT)(0.05),
+    thin_norm::Real = primal_type(FT)(0.05),
     source_terms::Integer = 12,
 ) where {FT<:Real}
-    require_continuous_scalar(FT, NativeTwoStream, (FT,))
-    SFT = compatible_scalar(FT, typeof(thin_norm))
-    SFT === Union{} && throw(MethodError(NativeTwoStream, (FT, thin_norm, source_terms)))
-    return NativeTwoStream(convert(SFT, thin_norm), source_terms)
+    S = common_scalar_type(zero(FT), thin_norm)
+    return NativeTwoStream(convert(S, thin_norm), source_terms)
 end
 
-Base.eltype(::Type{NativeTwoStream{FT}}) where {FT} = FT
-Base.eltype(m::NativeTwoStream) = typeof(m.thin_norm)
-broadcastable(m::NativeTwoStream) = Ref(m)
-Base.:(==)(a::NativeTwoStream, b::NativeTwoStream) =
-    (a.source_terms == b.source_terms) && (a.thin_norm == b.thin_norm)
-Base.isequal(a::NativeTwoStream, b::NativeTwoStream) =
-    (a.source_terms == b.source_terms) && isequal(a.thin_norm, b.thin_norm)
-function Base.hash(m::NativeTwoStream, h::UInt)
-    h = hash(:NativeTwoStream, h)
-    h = hash(m.source_terms, h)
-    return _hash_scalar(m.thin_norm, h)
-end
+Base.eltype(::Type{<:NativeTwoStream{FT}}) where {FT} = FT
 
 """
     AnalyticTwoStream()
@@ -81,13 +67,20 @@ AnalyticTwoStream()
 """
 struct AnalyticTwoStream <: AbstractTwoStreamMethod end
 
-broadcastable(m::AnalyticTwoStream) = Ref(m)
+# Scalars of a two-stream method that take part in the precision of a layer
+# computation (none for a method without parameters).
+@inline _precision_operands(::AbstractTwoStreamMethod) = ()
+@inline _precision_operands(m::NativeTwoStream) = (m,)
 
 """
     CanopyRates(absorption, backscatter, beam_up, beam_down, extinction)
 
 Store differential two-stream coefficients per unit one-sided leaf area index
 (`LAI`), where diffuse attenuation is `a = absorption + backscatter`.
+
+All five rates must be floating-point numbers of one precision: `Float32` with
+`Float64`, integers, rationals and irrationals throw an `ArgumentError`; a
+`Float64` mixed with a `Float64`-valued dual number promotes to the dual.
 
 # Fields
 - `absorption::FT`: diffuse absorption rate `α = a - b` per unit `LAI`.
@@ -102,7 +95,7 @@ julia> r = CanopyRates(0.12, 0.08, 0.05, 0.06, 0.7)
 CanopyRates{Float64}(0.12, 0.08, 0.05, 0.06, 0.7)
 ```
 """
-struct CanopyRates{FT<:Real}
+struct CanopyRates{FT<:Real} <: RadiationRecord
     absorption::FT
     backscatter::FT
     beam_up::FT
@@ -116,23 +109,9 @@ struct CanopyRates{FT<:Real}
         beam_down::FT,
         extinction::FT,
     ) where {FT<:Real}
-        require_continuous_scalar(
-            FT,
-            CanopyRates,
-            (absorption, backscatter, beam_up, beam_down, extinction),
-        )
+        same_precision(absorption)
         return new{FT}(absorption, backscatter, beam_up, beam_down, extinction)
     end
-end
-
-@inline function CanopyRates(
-    absorption::FT,
-    backscatter::FT,
-    beam_up::FT,
-    beam_down::FT,
-    extinction::FT,
-) where {FT<:Real}
-    return CanopyRates{FT}(absorption, backscatter, beam_up, beam_down, extinction)
 end
 
 @inline function CanopyRates(
@@ -142,14 +121,7 @@ end
     beam_down::Real,
     extinction::Real,
 )
-    FT = promote_compatible_scalar(
-        CanopyRates,
-        absorption,
-        backscatter,
-        beam_up,
-        beam_down,
-        extinction,
-    )
+    FT = common_scalar_type(absorption, backscatter, beam_up, beam_down, extinction)
     return CanopyRates{FT}(
         convert(FT, absorption),
         convert(FT, backscatter),
@@ -159,47 +131,9 @@ end
     )
 end
 
-Base.eltype(::Type{CanopyRates{FT}}) where {FT} = FT
-Base.eltype(r::CanopyRates) = typeof(r.absorption)
-broadcastable(r::CanopyRates) = Ref(r)
-
-function Base.convert(::Type{CanopyRates{FT}}, r::CanopyRates{FT}) where {FT<:Real}
-    require_continuous_scalar(FT, convert, (CanopyRates{FT}, r))
-    return r
-end
-function Base.convert(::Type{CanopyRates{FT}}, r::CanopyRates{S}) where {FT<:Real,S<:Real}
-    compatible_scalar(FT, S) === Union{} && throw(MethodError(convert, (CanopyRates{FT}, r)))
-    return CanopyRates{FT}(
-        convert(FT, r.absorption),
-        convert(FT, r.backscatter),
-        convert(FT, r.beam_up),
-        convert(FT, r.beam_down),
-        convert(FT, r.extinction),
-    )
-end
-
-Base.:(==)(a::CanopyRates, b::CanopyRates) =
-    (a.absorption == b.absorption) &&
-    (a.backscatter == b.backscatter) &&
-    (a.beam_up == b.beam_up) &&
-    (a.beam_down == b.beam_down) &&
-    (a.extinction == b.extinction)
-
-Base.isequal(a::CanopyRates, b::CanopyRates) =
-    isequal(a.absorption, b.absorption) &&
-    isequal(a.backscatter, b.backscatter) &&
-    isequal(a.beam_up, b.beam_up) &&
-    isequal(a.beam_down, b.beam_down) &&
-    isequal(a.extinction, b.extinction)
-
-function Base.hash(r::CanopyRates, h::UInt)
-    h = hash(:CanopyRates, h)
-    h = _hash_scalar(r.absorption, h)
-    h = _hash_scalar(r.backscatter, h)
-    h = _hash_scalar(r.beam_up, h)
-    h = _hash_scalar(r.beam_down, h)
-    return _hash_scalar(r.extinction, h)
-end
+Base.eltype(::Type{<:CanopyRates{FT}}) where {FT} = FT
+Base.convert(::Type{CanopyRates{FT}}, r::CanopyRates) where {FT} =
+    _convert_record(CanopyRates{FT}, r)
 
 """
     foursail_canopy_rates(geom::FourSAILGeometry, reflectance, transmittance)
@@ -231,20 +165,15 @@ true
     reflectance::Real,
     transmittance::Real,
 )
-    FT = promote_compatible_scalar(
-        foursail_canopy_rates,
-        geom.ks,
-        reflectance,
-        transmittance,
-    )
-    P = primal_float_type(FT)
+    FT = common_scalar_type(geom.ks, reflectance, transmittance)
+    P = primal_type(FT)
     r = convert(FT, reflectance)
     t = convert(FT, transmittance)
-    finite_scalar(r) && finite_scalar(t) && finite_scalar(geom.ks) ||
+    all_finite(r) && all_finite(t) && all_finite(geom.ks) ||
         throw(ArgumentError("Leaf optical inputs and geometry must be finite"))
-    primal_scalar(r) >= zero(P) &&
-        primal_scalar(t) >= zero(P) &&
-        primal_scalar(r + t) <= one(P) ||
+    primal(r) >= zero(P) &&
+        primal(t) >= zero(P) &&
+        primal(r + t) <= one(P) ||
         throw(ArgumentError("Leaf reflectance and transmittance must satisfy R >= 0, T >= 0, and R + T <= 1"))
     ddb = convert(FT, geom.ddb)
     ddf = convert(FT, geom.ddf)
@@ -266,17 +195,12 @@ end
     transmittance::Real,
     clumping::Real,
 )
-    FT = promote_compatible_scalar(
-        foursail_canopy_rates,
-        geom.ks,
-        reflectance,
-        transmittance,
-        clumping,
+    FT = common_scalar_type(geom.ks, reflectance, transmittance, clumping)
+    om = _checked(
+        convert(FT, clumping),
+        _nonnegative,
+        "Clumping index must be finite and nonnegative",
     )
-    P = primal_float_type(FT)
-    om = convert(FT, clumping)
-    finite_scalar(om) && primal_scalar(om) >= zero(P) ||
-        throw(ArgumentError("Clumping index must be finite and nonnegative"))
     base = foursail_canopy_rates(geom, convert(FT, reflectance), convert(FT, transmittance))
     return CanopyRates{FT}(
         om * base.absorption,
@@ -306,7 +230,7 @@ julia> op = LayerOperator(0.05, 0.72, 0.04, 0.06, 0.5)
 LayerOperator{Float64}(0.05, 0.72, 0.04, 0.06, 0.5)
 ```
 """
-struct LayerOperator{FT<:Real}
+struct LayerOperator{FT<:Real} <: RadiationRecord
     reflection::FT
     transmission::FT
     beam_up::FT
@@ -320,23 +244,9 @@ struct LayerOperator{FT<:Real}
         beam_down::FT,
         beam_transmission::FT,
     ) where {FT<:Real}
-        require_continuous_scalar(
-            FT,
-            LayerOperator,
-            (reflection, transmission, beam_up, beam_down, beam_transmission),
-        )
+        same_precision(reflection)
         return new{FT}(reflection, transmission, beam_up, beam_down, beam_transmission)
     end
-end
-
-@inline function LayerOperator(
-    reflection::FT,
-    transmission::FT,
-    beam_up::FT,
-    beam_down::FT,
-    beam_transmission::FT,
-) where {FT<:Real}
-    return LayerOperator{FT}(reflection, transmission, beam_up, beam_down, beam_transmission)
 end
 
 @inline function LayerOperator(
@@ -346,14 +256,7 @@ end
     beam_down::Real,
     beam_transmission::Real,
 )
-    FT = promote_compatible_scalar(
-        LayerOperator,
-        reflection,
-        transmission,
-        beam_up,
-        beam_down,
-        beam_transmission,
-    )
+    FT = common_scalar_type(reflection, transmission, beam_up, beam_down, beam_transmission)
     return LayerOperator{FT}(
         convert(FT, reflection),
         convert(FT, transmission),
@@ -363,46 +266,57 @@ end
     )
 end
 
-Base.eltype(::Type{LayerOperator{FT}}) where {FT} = FT
-Base.eltype(op::LayerOperator) = typeof(op.reflection)
-broadcastable(op::LayerOperator) = Ref(op)
+Base.eltype(::Type{<:LayerOperator{FT}}) where {FT} = FT
+Base.convert(::Type{LayerOperator{FT}}, op::LayerOperator) where {FT} =
+    _convert_record(LayerOperator{FT}, op)
 
-function Base.convert(::Type{LayerOperator{FT}}, op::LayerOperator{FT}) where {FT<:Real}
-    require_continuous_scalar(FT, convert, (LayerOperator{FT}, op))
-    return op
+# ============================================================================
+# Even power series in q = m² h² (smooth through the conservative limit q → 0)
+# ============================================================================
+
+# cosh(√q)
+@inline function even_cosh_c0(q)
+    FT = typeof(q)
+    r = one(FT)
+    r = one(FT) + q * r * inv(FT(240))
+    r = one(FT) + q * r * inv(FT(182))
+    r = one(FT) + q * r * inv(FT(132))
+    r = one(FT) + q * r * inv(FT(90))
+    r = one(FT) + q * r * inv(FT(56))
+    r = one(FT) + q * r * inv(FT(30))
+    r = one(FT) + q * r * inv(FT(12))
+    r = one(FT) + q * r * inv(FT(2))
+    return r
 end
-function Base.convert(::Type{LayerOperator{FT}}, op::LayerOperator{S}) where {FT<:Real,S<:Real}
-    compatible_scalar(FT, S) === Union{} && throw(MethodError(convert, (LayerOperator{FT}, op)))
-    return LayerOperator{FT}(
-        convert(FT, op.reflection),
-        convert(FT, op.transmission),
-        convert(FT, op.beam_up),
-        convert(FT, op.beam_down),
-        convert(FT, op.beam_transmission),
-    )
+
+# sinh(√q) / √q
+@inline function even_sinh_s0(q)
+    FT = typeof(q)
+    r = one(FT)
+    r = one(FT) + q * r * inv(FT(272))
+    r = one(FT) + q * r * inv(FT(210))
+    r = one(FT) + q * r * inv(FT(156))
+    r = one(FT) + q * r * inv(FT(110))
+    r = one(FT) + q * r * inv(FT(72))
+    r = one(FT) + q * r * inv(FT(42))
+    r = one(FT) + q * r * inv(FT(20))
+    r = one(FT) + q * r * inv(FT(6))
+    return r
 end
 
-Base.:(==)(a::LayerOperator, b::LayerOperator) =
-    (a.reflection == b.reflection) &&
-    (a.transmission == b.transmission) &&
-    (a.beam_up == b.beam_up) &&
-    (a.beam_down == b.beam_down) &&
-    (a.beam_transmission == b.beam_transmission)
-
-Base.isequal(a::LayerOperator, b::LayerOperator) =
-    isequal(a.reflection, b.reflection) &&
-    isequal(a.transmission, b.transmission) &&
-    isequal(a.beam_up, b.beam_up) &&
-    isequal(a.beam_down, b.beam_down) &&
-    isequal(a.beam_transmission, b.beam_transmission)
-
-function Base.hash(op::LayerOperator, h::UInt)
-    h = hash(:LayerOperator, h)
-    h = _hash_scalar(op.reflection, h)
-    h = _hash_scalar(op.transmission, h)
-    h = _hash_scalar(op.beam_up, h)
-    h = _hash_scalar(op.beam_down, h)
-    return _hash_scalar(op.beam_transmission, h)
+# (cosh(√q) - 1) / q
+@inline function even_cosh_m1_s1(q)
+    FT = typeof(q)
+    r = one(FT)
+    r = one(FT) + q * r * inv(FT(306))
+    r = one(FT) + q * r * inv(FT(240))
+    r = one(FT) + q * r * inv(FT(182))
+    r = one(FT) + q * r * inv(FT(132))
+    r = one(FT) + q * r * inv(FT(90))
+    r = one(FT) + q * r * inv(FT(56))
+    r = one(FT) + q * r * inv(FT(30))
+    r = one(FT) + q * r * inv(FT(12))
+    return inv(FT(2)) * r
 end
 
 """
@@ -426,7 +340,7 @@ true
 ```
 """
 @inline function diffuse_response(absorption::Real, backscatter::Real, lai::Real)
-    FT = promote_compatible_scalar(diffuse_response, absorption, backscatter, lai)
+    FT = common_scalar_type(absorption, backscatter, lai)
     return _diffuse_response(
         convert(FT, absorption),
         convert(FT, backscatter),
@@ -434,8 +348,10 @@ true
     )
 end
 
-@inline function _diffuse_response(absorption::FT, backscatter::FT, lai::FT) where {FT<:Real}
-    P = primal_float_type(FT)
+# Arguments of one scalar type (checked and converted by the caller).
+@inline function _diffuse_response(absorption, backscatter, lai)
+    FT = typeof(lai)
+    P = primal_type(FT)
     a = absorption + backscatter
     b = backscatter
     m2 = absorption * (absorption + FT(2) * b)
@@ -454,7 +370,7 @@ end
             source_zero = v / denominator,
             source_first = w / denominator,
         )
-    elseif iszero(q) || (!(FT <: AbstractFloat) && primal_scalar(q) <= sqrt(sqrt(eps(P))))
+    elseif iszero(q) || (!(FT <: AbstractFloat) && primal(q) <= sqrt(sqrt(eps(P))))
         vt = lai * even_sinh_s0(q)
         wt = (lai * lai) * even_cosh_m1_s1(q)
         dt = even_cosh_c0(q) + a * vt
@@ -481,7 +397,8 @@ end
     end
 end
 
-@inline function double_layer(p::LayerOperator{FT}) where {FT<:Real}
+@inline function double_layer(p::LayerOperator)
+    FT = eltype(p)
     r, t, u, d, beam =
         p.reflection, p.transmission, p.beam_up, p.beam_down, p.beam_transmission
     inverse = inv(one(FT) - r * r)
@@ -501,6 +418,10 @@ Assemble the dimensionless [`LayerOperator`](@ref) for a homogeneous layer of
 leaf area index `lai` using `method` ([`NativeTwoStream`](@ref) or
 [`AnalyticTwoStream`](@ref)).
 
+A `lai` that is an exact zero (value and every derivative component, see
+[`CanopyRadiation.exact_zero`](@ref)) returns the identity operator
+`LayerOperator(0, 1, 0, 0, 1)`.
+
 # Examples
 ```jldoctest
 julia> r = CanopyRates(0.15, 0.08, 0.04, 0.05, 0.65);
@@ -514,34 +435,28 @@ true
 ```
 """
 @inline function layer_operator(
-    method::NativeTwoStream,
+    method::AbstractTwoStreamMethod,
     rates::CanopyRates,
     lai::Real,
 )
-    FT = promote_compatible_scalar(layer_operator, method.thin_norm, rates.absorption, lai)
-    return _layer_operator_native(
-        convert(FT, method.thin_norm),
-        method.source_terms,
-        convert(CanopyRates{FT}, rates),
-        convert(FT, lai),
-    )
+    FT = common_scalar_type(_precision_operands(method)..., rates, lai)
+    return _layer_operator(method, convert(CanopyRates{FT}, rates), convert(FT, lai))
 end
 
-@inline function _layer_operator_native(
-    thin_norm::FT,
-    source_terms::Int,
-    rates::CanopyRates{FT},
-    lai::FT,
-) where {FT<:Real}
-    exact_zero_scalar(lai) &&
+# Rates and lai of one scalar type (checked and converted by `layer_operator`).
+@inline function _layer_operator(method::NativeTwoStream, rates::CanopyRates, lai)
+    FT = typeof(lai)
+    thin_norm = convert(FT, method.thin_norm)
+    source_terms = method.source_terms
+    exact_zero(lai) &&
         return LayerOperator{FT}(zero(FT), one(FT), zero(FT), zero(FT), one(FT))
-    P = primal_float_type(FT)
+    P = primal_type(FT)
     b, alpha, k = rates.backscatter, rates.absorption, rates.extinction
     a = alpha + b
     h = lai
     doublings = 0
     scale = max(a + b, k)
-    while primal_scalar(h * scale) > primal_scalar(thin_norm)
+    while primal(h * scale) > primal(thin_norm)
         h /= FT(2)
         doublings += 1
     end
@@ -550,7 +465,7 @@ end
     v = if FT <: AbstractFloat && !iszero(q_h)
         m = sqrt(m2)
         sinh(m * h) / m
-    elseif iszero(q_h) || (!(FT <: AbstractFloat) && primal_scalar(q_h) <= sqrt(sqrt(eps(P))))
+    elseif iszero(q_h) || (!(FT <: AbstractFloat) && primal(q_h) <= sqrt(sqrt(eps(P))))
         h * even_sinh_s0(q_h)
     else
         m = sqrt(m2)
@@ -578,9 +493,10 @@ end
     return result
 end
 
-@inline function _exp_quotient_e1(u::FT) where {FT<:Real}
-    P = primal_float_type(FT)
-    if primal_scalar(abs(u)) <= P(0.1)
+@inline function _exp_quotient_e1(u)
+    FT = typeof(u)
+    P = primal_type(FT)
+    if primal(abs(u)) <= P(0.1)
         half = u * inv(FT(2))
         return exp(-half) * even_sinh_s0(half * half)
     else
@@ -588,20 +504,22 @@ end
     end
 end
 
-@inline function _analytic_beam_j1(k::FT, m::FT, lai::FT) where {FT<:Real}
-    P = primal_float_type(FT)
+@inline function _analytic_beam_j1(k, m, lai)
+    FT = typeof(lai)
+    P = primal_type(FT)
     diff = (k - m) * lai
-    if primal_scalar(abs(diff)) <= P(0.1)
+    if primal(abs(diff)) <= P(0.1)
         half_diff = diff * inv(FT(2))
         return lai * exp(-inv(FT(2)) * (k + m) * lai) * even_sinh_s0(half_diff * half_diff)
-    elseif primal_scalar(k) >= primal_scalar(m)
+    elseif primal(k) >= primal(m)
         return exp(-m * lai) * (-expm1(-diff) / (k - m))
     else
         return exp(-k * lai) * (-expm1(diff) / (m - k))
     end
 end
 
-@inline function _n_series_scalar(u::FT, eu::FT, p::Int) where {FT<:Real}
+@inline function _n_series_scalar(u, eu, p::Int)
+    FT = typeof(u)
     acc = inv(FT(p + 1))
     uj = one(FT)
     for j in 1:72
@@ -611,10 +529,11 @@ end
     return eu * acc
 end
 
-@inline function _small_q_beam_moments(u::FT, q::FT) where {FT<:Real}
-    P = primal_float_type(FT)
+@inline function _small_q_beam_moments(u, q)
+    FT = typeof(u)
+    P = primal_type(FT)
     eu = exp(-u)
-    if primal_scalar(u) <= P(18)
+    if primal(u) <= P(18)
         m_hi = zero(FT)
         for idx in 64:-1:19
             m_hi = (u * m_hi + eu) * inv(FT(idx))
@@ -672,26 +591,18 @@ end
     end
 end
 
-@inline function layer_operator(
-    ::AnalyticTwoStream,
-    rates::CanopyRates,
-    lai::Real,
-)
-    FT = promote_compatible_scalar(layer_operator, rates.absorption, lai)
-    return _layer_operator_analytic(convert(CanopyRates{FT}, rates), convert(FT, lai))
-end
-
-@inline function _layer_operator_analytic(rates::CanopyRates{FT}, lai::FT) where {FT<:Real}
-    exact_zero_scalar(lai) &&
+@inline function _layer_operator(::AnalyticTwoStream, rates::CanopyRates, lai)
+    FT = typeof(lai)
+    exact_zero(lai) &&
         return LayerOperator{FT}(zero(FT), one(FT), zero(FT), zero(FT), one(FT))
-    P = primal_float_type(FT)
+    P = primal_type(FT)
     alpha, b, su, sd, k =
         rates.absorption, rates.backscatter, rates.beam_up, rates.beam_down, rates.extinction
     a = alpha + b
     m2 = alpha * (alpha + FT(2) * b)
     q = m2 * lai * lai
     beam_trans = exp(-k * lai)
-    if primal_scalar(q) <= sqrt(sqrt(eps(P)))
+    if primal(q) <= sqrt(sqrt(eps(P)))
         vt = lai * even_sinh_s0(q)
         dt = even_cosh_c0(q) + a * vt
         refl = b * vt / dt
@@ -756,7 +667,7 @@ struct ColumnFluxWorkspace{FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{FT}}
         up::V,
         absorption::A,
     ) where {FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{FT}}
-        require_continuous_scalar(FT, ColumnFluxWorkspace, (direct, down, up, absorption))
+        same_precision(direct)
         axes(direct) == axes(down) == axes(up) ||
             throw(DimensionMismatch("ColumnFluxWorkspace interface vectors must share axes"))
         length(direct) == length(absorption) + 1 ||
@@ -767,7 +678,7 @@ struct ColumnFluxWorkspace{FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{FT}}
 end
 
 function ColumnFluxWorkspace(::Type{FT}, n_layers::Integer) where {FT<:Real}
-    require_continuous_scalar(FT, ColumnFluxWorkspace, (FT, n_layers))
+    same_precision(zero(FT))
     n_layers >= 0 || throw(ArgumentError("n_layers must be nonnegative"))
     n = Int(n_layers)
     return ColumnFluxWorkspace(
@@ -779,7 +690,6 @@ function ColumnFluxWorkspace(::Type{FT}, n_layers::Integer) where {FT<:Real}
 end
 
 Base.eltype(::Type{<:ColumnFluxWorkspace{FT}}) where {FT} = FT
-Base.eltype(ws::ColumnFluxWorkspace) = eltype(ws.direct)
 
 """
     solve_column!(ws::ColumnFluxWorkspace, layers::AbstractVector{<:LayerOperator}, direct, diffuse, soil)
@@ -791,23 +701,20 @@ During the backward adding sweep, `ws.down` and `ws.up` temporarily hold
 interface effective reflectance and beam-induced upward source before being
 overwritten in place during the forward flux sweep, matching [`solve_column`](@ref)
 in exact IEEE-754 arithmetic order.
+
+The inputs must have the precision of `ws` and promote to its element type
+(`ArgumentError` otherwise).
 """
 @inline function solve_column!(
-    ws::ColumnFluxWorkspace{FT},
+    ws::ColumnFluxWorkspace,
     layers::AbstractVector{<:LayerOperator},
     direct::Real,
     diffuse::Real,
     soil::Real,
-) where {FT<:Real}
-    FT2 = promote_compatible_scalar(
-        solve_column!,
-        zero(FT),
-        zero(eltype(eltype(layers))),
-        direct,
-        diffuse,
-        soil,
-    )
-    FT2 === FT || throw(ArgumentError("ColumnFluxWorkspace element type must match promoted input type"))
+)
+    FT = eltype(ws)
+    common_scalar_type(ws.direct, layers, direct, diffuse, soil) === FT ||
+        throw(ArgumentError("ColumnFluxWorkspace element type must match promoted input type"))
     n = length(layers)
     length(ws.absorption) == n ||
         throw(DimensionMismatch("Workspace layer count does not match layers"))
@@ -867,31 +774,6 @@ in exact IEEE-754 arithmetic order.
     )
 end
 
-@inline _promote_layer_ops(f, ::Tuple{}, ::Type{FT}) where {FT<:Real} = FT
-@inline function _promote_layer_ops(
-    f,
-    layers::Tuple{LayerOperator,Vararg{LayerOperator}},
-    ::Type{FT},
-) where {FT<:Real}
-    FT2 = promote_compatible_scalar(f, zero(FT), first(layers).reflection)
-    return _promote_layer_ops(f, Base.tail(layers), FT2)
-end
-
-@inline _convert_layer_ops(::Type{FT}, ::Tuple{}) where {FT<:Real} = ()
-@inline _convert_layer_ops(
-    ::Type{FT},
-    layers::NTuple{N,LayerOperator{FT}},
-) where {N,FT<:Real} = layers
-@inline function _convert_layer_ops(
-    ::Type{FT},
-    layers::Tuple{LayerOperator,Vararg{LayerOperator}},
-) where {FT<:Real}
-    return (
-        convert(LayerOperator{FT}, first(layers)),
-        _convert_layer_ops(FT, Base.tail(layers))...,
-    )
-end
-
 """
     solve_column(layers, direct, diffuse, soil)
 
@@ -920,7 +802,7 @@ true
     diffuse::Real,
     soil::Real,
 )
-    FT0 = promote_compatible_scalar(solve_column, direct, diffuse, soil)
+    FT0 = common_scalar_type(direct, diffuse, soil)
     d0 = convert(FT0, direct)
     f0 = convert(FT0, diffuse)
     s0 = convert(FT0, soil)
@@ -935,17 +817,9 @@ end
     diffuse::Real,
     soil::Real,
 )
-    FT0 = promote_compatible_scalar(
-        solve_column,
-        first(layers).reflection,
-        direct,
-        diffuse,
-        soil,
-    )
-    FT = _promote_layer_ops(solve_column, Base.tail(layers), FT0)
-    ops = _convert_layer_ops(FT, layers)
+    FT = common_scalar_type(_precision_operands(layers)..., direct, diffuse, soil)
     return _solve_column_tuple(
-        ops,
+        _convert_tuple(LayerOperator{FT}, layers),
         convert(FT, direct),
         convert(FT, diffuse),
         convert(FT, soil),
@@ -1041,13 +915,7 @@ function solve_column(
     diffuse::Real,
     soil::Real,
 )
-    FT = promote_compatible_scalar(
-        solve_column,
-        zero(eltype(eltype(layers))),
-        direct,
-        diffuse,
-        soil,
-    )
+    FT = common_scalar_type(layers, direct, diffuse, soil)
     ws = ColumnFluxWorkspace(FT, length(layers))
     return solve_column!(ws, layers, direct, diffuse, soil)
 end
@@ -1084,28 +952,15 @@ true
     up_bottom::Real,
     beam_top::Real,
 )
-    FT = if method isa NativeTwoStream
-        promote_compatible_scalar(
-            interior_flux,
-            method.thin_norm,
-            rates.absorption,
-            lai,
-            x,
-            down_top,
-            up_bottom,
-            beam_top,
-        )
-    else
-        promote_compatible_scalar(
-            interior_flux,
-            rates.absorption,
-            lai,
-            x,
-            down_top,
-            up_bottom,
-            beam_top,
-        )
-    end
+    FT = common_scalar_type(
+        _precision_operands(method)...,
+        rates,
+        lai,
+        x,
+        down_top,
+        up_bottom,
+        beam_top,
+    )
     lai_f = convert(FT, lai)
     x_f = convert(FT, x)
     dt = convert(FT, down_top)
