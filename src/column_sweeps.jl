@@ -9,8 +9,10 @@
 # carries no direct beam and orders its operations differently, so a passive column
 # solved as an emitting one would differ in the last bits. The tuple recursions in
 # two_stream.jl and emission_transport.jl evaluate the same expressions in the same
-# order; they stay because they infer and run allocation free inside scalar
-# broadcasts over GPU arrays.
+# order for one or more layers; they stay because they infer and run allocation free
+# inside scalar broadcasts over GPU arrays. Exception, as in v0.1.0: for a passive
+# column of ZERO layers the tuple method computes `soil * (direct + diffuse)`, this
+# sweep `soil * diffuse + soil * direct`, which can differ by up to 2 ulp.
 
 # Entries of one column, indexed 0, 1, … from the top of the column: entry `s` is
 # `data[offset + s]` of a vector or `data[offset + s, b]` of column `b` of a matrix

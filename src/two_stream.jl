@@ -18,6 +18,18 @@ repeated doubling, and `source_terms` sets the Taylor order for the direct-beam
 source column on the thin sub-slab. `thin_norm` must be a finite positive
 floating-point number (`ArgumentError` otherwise).
 
+Accuracy: every doubling roughly doubles the rounding error of the diffuse operator.
+For conservative scattering `|1 - R - T|` is about `1.2 × 2^d × eps(FT)` after `d`
+doublings, and the number of doublings is set by `max(a + b, k)`, so a low sun
+(large `k`) degrades the diffuse operator too: in `Float64` at most about `1.5e-11`
+at `d = 16`; in `Float32` about `2e-5` at `d = 7` (LAI 1, solar zenith 85°) and
+`1.3e-3` at `d = 13` (LAI 1, solar zenith 89.9°), with negative layer absorption of
+the same size. Prefer [`AnalyticTwoStream`](@ref) for `Float32` at low sun. With
+dual numbers the thin sub-slab uses a series where floats use the closed form; the
+value of a dual result then differs from the plain-float result by about `2^d` times
+a few eps (about 24 eps at `d = 4`, 450 at `d = 8`, `1e4` at `d = 16`). An infinite
+`lai` does not terminate.
+
 # Examples
 ```jldoctest
 julia> m = NativeTwoStream(0.05, 12)
@@ -685,7 +697,9 @@ reflectance `soil` into `ws` with zero scratch allocations.
 During the backward adding sweep, `ws.down` and `ws.up` temporarily hold
 interface effective reflectance and beam-induced upward source before being
 overwritten in place during the forward flux sweep, matching [`solve_column`](@ref)
-in exact IEEE-754 arithmetic order.
+on a tuple in exact IEEE-754 arithmetic order for one or more layers (for zero
+layers the upward flux and ground absorption can differ by up to 2 ulp, see
+[`solve_column`](@ref)).
 
 The inputs must have the precision of `ws` and promote to its element type
 (`ArgumentError` otherwise).
@@ -736,6 +750,12 @@ above Lambertian ground reflectance `soil`.
 
 Return `(; direct, down, up, absorption, ground)` satisfying column flux
 conservation `direct[1] + diffuse == up[1] + sum(absorption) + ground`.
+
+The tuple and vector methods (and [`batch_solve_columns!`](@ref)) evaluate the same
+expressions in the same order for one or more layers, so their results are
+bit-identical. For an empty column the tuple method computes the reflected flux as
+`soil * (direct + diffuse)` and the vector method as `soil * diffuse + soil * direct`;
+the two can differ by up to 2 ulp (as in v0.1.0).
 
 # Examples
 ```jldoctest
