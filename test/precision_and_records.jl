@@ -301,3 +301,201 @@ end
     @test eltype(r) === Float64 && eltype(NativeTwoStream(0.05f0, 3)) === Float32
     @test eltype(q) === Float64 && eltype(el) === Float64 && eltype(ColumnFluxWorkspace(Float32, 2)) === Float32
 end
+
+# ============================================================================
+# Leaf faces, populations, emission laws, atmosphere coupling, leaf spectral
+# emission, hemispheric moments and SIF assembly
+# ============================================================================
+
+function api_objects(FT)
+    lem = LeafEmissionMatrix(FT[0.3 0.2; 0.2 0.3], FT[0.2 0.2; 0.1 0.2], FT[0.1 0.1; 0.2 0.1], FT[0.1, 0.2])
+    lhs = LayerHemisphericSource(FT(1.2), FT[0.25, 0.75], FT[0.5, 0.5], fill(FT(0.1), 2, 2), fill(FT(0.2), 2, 2), FT[0.4, 0.5])
+    return (;
+        pq = PopulationQuadrature(1, FT(1.0), FT(0.0), FT[0.5], FT[1.0], FT[0.4], FT[0.8], PairedIllumination()),
+        law = MixedLambertianFaces(FT(0.7)),
+        bnd = AngularEmissionBoundary(FT[0.1;;], FT[0.5;;], FT[0.7], FT[1.0], 0),
+        atm = AngularAtmosphericTransfer(FT[0.05;;], FT[0.9;;], FT[0.7], FT[1.0], 0),
+        lem,
+        dlem = DualLeafEmissionMatrix(lem, lem),
+        lhs,
+        dlhs = DualLayerHemisphericSource(lhs, lhs),
+        ism = IdentitySpectralMap(FT[400, 500]),
+        lsm = LinearSpectralMap(FT[400, 600], FT[400, 500, 600]),
+    )
+end
+
+@testset "Precision policy: leaf faces, populations, emission laws, coupling, SIF" begin
+    o64 = api_objects(Float64)
+    o32 = api_objects(Float32)
+    mu = [0.3, 0.8]
+    w3 = reshape([0.2, 0.4, 0.3, 0.5], 2, 1, 2)
+    for bad in (1.0f0, 1, true, 1 // 2, pi)
+        bad isa AbstractFloat || @test_throws ArgumentError CanopyRadiation.unit_sin_from_cos(bad)
+        @test_throws ArgumentError source_projection(0.5, 0.1, bad, 0.2)
+        @test_throws ArgumentError beam_face_absorption(0.5, bad, 0.8)
+        @test_throws ArgumentError isotropic_face_absorption(0.4, 200.0, bad, 0.8)
+        @test_throws ArgumentError leaf_hemispheric_emission(LambertianFaces(), 0.5, bad, 0.2)
+        @test_throws ArgumentError leaf_hemispheric_emission(o64.law, 0.5, 0.6, bad)
+        @test_throws ArgumentError leaf_angular_emission(o64.law, 0.5, 0.1, bad, 0.0, 0.6, 0.2)
+        @test_throws ArgumentError leaf_angular_emission(LambertianFaces(), 0.5, 0.1, 0.7, bad, 0.6, 0.2; mirrored_azimuth = true)
+        @test_throws ArgumentError depth_hemispheric_source(o64.law, PairedIllumination(), mu, fill(0.25, 4), ones(4), ones(4), 1, bad)
+        @test_throws ArgumentError depth_angular_source(LambertianFaces(), PairedIllumination(), mu, [0.1, 0.2], fill(0.25, 4), ones(4), ones(4), 1, 1.0, bad, 0.0)
+        @test_throws ArgumentError hemispheric_moment(o64.law, mu, Float32.(w3), 1, 1)
+        @test_throws ArgumentError evaluate_hemispheric_sif_bin([o64.lhs], o64.lem, [0.1], [0.2], bad, 1)
+        bad isa AbstractFloat || @test_throws ArgumentError MixedLambertianFaces(bad)
+        bad isa AbstractFloat || @test_throws ArgumentError orientation_hemisphere_samples(spherical_leaves(), bad)
+    end
+    # Float32 records with Float64 inputs
+    @test_throws ArgumentError leaf_hemispheric_emission(o32.law, 0.5, 0.6, 0.2)
+    @test_throws ArgumentError couple_emission(o64.bnd, o32.atm)
+    @test_throws ArgumentError one_way_emission(o32.bnd, o64.atm)
+    @test_throws ArgumentError hemispheric_bin(ones(1, 2), ones(1, 2), Float32[1, 1], Float32[1, 1], 1)
+    @test_throws ArgumentError hemispheric_source_moments!(zeros(1, 2), zeros(1, 2), o32.law, mu, w3)
+    @test_throws ArgumentError expand_hemispheric_source!(zeros(2), zeros(2), ones(2, 2), ones(2, 2), Float32[1, 1], Float32[1, 1])
+    @test_throws ArgumentError batch_hemispheric_moments!(zeros(1, 2, 1), zeros(1, 2, 1), o32.law, mu, reshape(w3, 2, 1, 2, 1))
+    @test_throws ArgumentError batch_expand_hemispheric_sources!(zeros(2, 1), zeros(2, 1), ones(2, 2), ones(2, 2), Float32[1 1], Float32[1 1])
+    @test_throws ArgumentError evaluate_hemispheric_sif_bin([o32.lhs], o64.lem, [0.1], [0.2], 0.1, 1)
+    @test_throws ArgumentError evaluate_hemispheric_sif_spectrum([o64.lhs], o32.lem, fill(0.1, 2, 1), fill(0.2, 2, 1), [0.1, 0.1])
+    @test_throws ArgumentError assemble_hemispheric_emission!(zeros(Int, 1), zeros(Int, 1), LambertianFaces(), o64.pq, fill(0.5, 2), ones(2), ones(2))
+    # Output element type must equal the promoted input type
+    @test_throws ArgumentError hemispheric_source_moments!(zeros(1, 2), zeros(1, 2), MixedLambertianFaces(dual(0.7, 1.0)), mu, w3)
+    # Integer storage and quadrature types
+    @test_throws ArgumentError LeafEmissionMatrix([1;;], [0;;], [0;;])
+    @test_throws ArgumentError AngularEmissionBoundary([0;;], [1;;], [1], [1], 0)
+    @test_throws ArgumentError LayerHemisphericSource(1, [0], [1], [0;;], [0;;], [1])
+    @test_throws ArgumentError PopulationQuadrature(1, 1, 0, [0], [1], [0], [1], PairedIllumination())
+    @test_throws ArgumentError leaf_inclination_quadrature(spherical_leaves(), 4, Int)
+    @test_throws ArgumentError photon_energy!(zeros(Int, 1, 1), ones(Int, 1, 1), ones(Int, 1), 1)
+    @test_throws ArgumentError escape_leaf_emission!(zeros(Int, 1, 1), zeros(Int, 1, 1), zeros(Int, 1, 1), NoLeafEmission())
+    # Static validation messages unchanged
+    @test_throws ArgumentError("lambertian_fraction must be finite and lie in [0, 1]") MixedLambertianFaces(1.5)
+    @test_throws ArgumentError("internal_psi matrix required for active PSI LeafEmissionMatrix") escape_dual_leaf_emission!(
+        zeros(2, 1), zeros(2, 1), zeros(2, 1), o64.dlem, ones(2, 1))
+    @test_throws ArgumentError("Unsupported out_of_window_fraction specification") CanopyRadiation._tail_fractions(
+        Float32[0.1], Float64, 1, StrictStokes(), [440.0], 600.0)
+end
+
+@testset "Precision policy: plain and dual inputs promote (faces, laws, coupling)" begin
+    D = typeof(dual(1.0, 1.0))
+    @test source_projection(dual(0.5, 1.0), 0.1, 0.7, 0.2) isa D
+    @test beam_face_absorption(0.5, 1000.0, dual(0.85, 1.0)).front isa D
+    @test leaf_hemispheric_emission(MixedLambertianFaces(0.7), dual(0.5, 1.0), 0.6, 0.2).upward isa D
+    @test leaf_hemispheric_emission(MixedLambertianFaces(dual(0.7, 1.0)), 0.5, 0.6, 0.2).upward isa D
+    b = AngularEmissionBoundary([0.2;;], [1.0;;], [0.7], [1.0], 0)
+    a = AngularAtmosphericTransfer([dual(0.1, 1.0);;], [dual(0.8, 0.0);;], [dual(0.7, 0.0)], [dual(1.0, 0.0)], 0)
+    c = couple_emission(b, a)
+    @test eltype(c.top_up) === D
+    @test ForwardDiff.value(c.canopy_up[1, 1]) == couple_emission(b, AngularAtmosphericTransfer([0.1;;], [0.8;;], [0.7], [1.0], 0)).canopy_up[1, 1]
+    @test eltype(one_way_emission(b, a)) === D
+    @test hemispheric_bin([0.3 0.5], [0.2 0.4], [dual(0.4, 1.0), 0.2], [0.1, 0.3], 1).up isa D
+end
+
+@testset "Inference and allocations, leaf faces to SIF ($FT)" for FT in (Float32, Float64)
+    o = api_objects(FT)
+    mu = FT[0.3, 0.8]
+    w3 = reshape(FT[0.2, 0.4, 0.3, 0.5], 2, 1, 2)
+    wpop, fr, bk = fill(FT(0.25), 4), FT[0.9, 0.6, 0.8, 0.5], FT[0.4, 0.3, 0.5, 0.2]
+    plate = diffuse_plate_optics(FT(0.15), FT(1.4))
+    @test (@inferred CanopyRadiation.unit_sin_from_cos(FT(0.6))) isa FT
+    @test (@inferred source_projection(FT(0.5), FT(0.1), FT(0.7), FT(0.2))) isa FT
+    @test (@inferred beam_face_absorption(FT(0.5), FT(900), FT(0.85))).front isa FT
+    @test (@inferred isotropic_face_absorption(FT(0.4), FT(200), FT(50), FT(0.8))).back isa FT
+    @test (@inferred regular_plate_passive(plate)).absorptance isa FT
+    @test (@inferred population_coordinates(o.pq, 2)).depth_lai isa FT
+    @test (@inferred leaf_hemispheric_emission(LambertianFaces(), FT(0.5), FT(0.6), FT(0.2))).upward isa FT
+    @test (@inferred leaf_hemispheric_emission(o.law, FT(0.5), FT(0.6), FT(0.2))).upward isa FT
+    @test (@inferred leaf_angular_emission(o.law, FT(0.5), FT(0.1), FT(0.7), FT(0), FT(0.6), FT(0.2))) isa FT
+    @test (@inferred depth_hemispheric_source(o.law, PairedIllumination(), mu, wpop, fr, bk, 1, FT(1))).upward isa FT
+    @test (@inferred depth_angular_source(o.law, BlockedIllumination(), mu, FT[0.1, 0.2], wpop, fr, bk, 1, FT(1), FT(0.8), FT(0.2))) isa FT
+    @test (@inferred hemispheric_moment(o.law, mu, w3, 1, 1)).plus isa FT
+    @test (@inferred hemispheric_bin(fill(FT(0.2), 2, 2), fill(FT(0.1), 2, 2), FT[0.4, 0.2], FT[0.1, 0.3], 1)).up isa FT
+    @test (@inferred couple_emission(o.bnd, o.atm)).top_up isa Matrix{FT}
+    @test eltype((@inferred evaluate_hemispheric_sif_bin([o.lhs], o.lem, FT[0.1], FT[0.2], FT(0.1), 1)).up) === FT
+    @test eltype((@inferred evaluate_hemispheric_sif_bin([o.dlhs], o.dlem, FT[0.1], FT[0.2], FT(0.1), 1)).up) === FT
+
+    alloc_proj(a, b, c, d) = @allocated source_projection(a, b, c, d)
+    alloc_beam(a, b, c) = @allocated beam_face_absorption(a, b, c)
+    alloc_hemi(law, a, b, c) = @allocated leaf_hemispheric_emission(law, a, b, c)
+    alloc_ang(law, a, b, c, d) = @allocated leaf_angular_emission(law, a, b, c, d, a, b; mirrored_azimuth = true)
+    alloc_depth(law, mu, w, f, b) = @allocated depth_hemispheric_source(law, PairedIllumination(), mu, w, f, b, 1, one(eltype(mu)))
+    alloc_moment(law, mu, w3) = @allocated hemispheric_moment(law, mu, w3, 1, 1)
+    alloc_energy(o, p, w, c) = @allocated photon_energy!(o, p, w, c)
+    alloc_bins(o, p, w) = @allocated photon_bins!(o, p, w)
+    out, ph, wl = zeros(FT, 2, 3), ones(FT, 2, 3), FT[680, 740]
+    measure() = (
+        alloc_proj(FT(0.5), FT(0.1), FT(0.7), FT(0.2)),
+        alloc_beam(FT(0.5), FT(900), FT(0.85)),
+        alloc_hemi(o.law, FT(0.5), FT(0.6), FT(0.2)),
+        alloc_ang(o.law, FT(0.5), FT(0.1), FT(0.7), FT(0.3)),
+        alloc_depth(o.law, mu, wpop, fr, bk),
+        alloc_moment(o.law, mu, w3),
+        alloc_energy(out, ph, wl, FT(0.1196)),
+        alloc_bins(out, ph, wl),
+    )
+    measure()
+    @test all(iszero, measure())
+end
+
+# An equal object with freshly allocated arrays.
+fresh_copy(m::IdentitySpectralMap) = IdentitySpectralMap(copy(source_grid(m)))
+fresh_copy(m::LinearSpectralMap) = LinearSpectralMap(copy(source_grid(m)), copy(target_grid(m)))
+fresh_copy(x) = CanopyRadiation._rebuild(x, map(f -> f isa AbstractArray ? copy(f) : f, CanopyRadiation._fields(x)))
+
+@testset "Record equality, hashing and broadcasting: populations to SIF" begin
+    o = api_objects(Float64)
+    other = (
+        pq = PopulationQuadrature(1, 1.0, 0.0, [0.5], [1.0], [0.4], [0.9], PairedIllumination()),
+        law = MixedLambertianFaces(0.6),
+        bnd = AngularEmissionBoundary([0.1;;], [0.6;;], [0.7], [1.0], 0),
+        atm = AngularAtmosphericTransfer([0.05;;], [0.9;;], [0.7], [1.0], 1),
+        lem = LeafEmissionMatrix([0.3 0.2; 0.2 0.3], [0.2 0.2; 0.1 0.2], [0.1 0.1; 0.2 0.1], [0.1, 0.3]),
+        dlem = DualLeafEmissionMatrix(o.lem, NoLeafEmission()),
+        lhs = LayerHemisphericSource(1.3, [0.25, 0.75], [0.5, 0.5], fill(0.1, 2, 2), fill(0.2, 2, 2), [0.4, 0.5]),
+        dlhs = DualLayerHemisphericSource(o.lhs, LayerHemisphericSource(1.2, [0.25, 0.75], [0.5, 0.5], fill(0.1, 2, 2), fill(0.2, 2, 2), [0.4, 0.6])),
+        ism = IdentitySpectralMap([400.0, 501.0]),
+        lsm = LinearSpectralMap([400.0, 600.0], [400.0, 550.0, 600.0]),
+    )
+    for k in keys(o)
+        a, b = o[k], other[k]
+        @test a == a && isequal(a, a) && hash(a) == hash(a)
+        @test a != b && !isequal(a, b)
+        @test Base.broadcastable(a) isa Ref
+        # an equal copy (fresh arrays) is equal and hashes equal
+        c = fresh_copy(a)
+        @test c == a && isequal(c, a) && hash(c) == hash(a)
+    end
+    for (x, y) in ((PairedIllumination(), BlockedIllumination()), (LambertianFaces(), VacuumAtmosphere()), (NoLeafEmission(), LambertianFaces()))
+        @test x == x && x != y && hash(x) != hash(y)
+    end
+    # -0.0 == 0.0 with equal hashes; isequal distinguishes them; NaN
+    z_pos = AngularEmissionBoundary([0.0;;], [0.5;;], [0.7], [1.0], 0)
+    z_neg = AngularEmissionBoundary([-0.0;;], [0.5;;], [0.7], [1.0], 0)
+    @test z_pos == z_neg && hash(z_pos) == hash(z_neg) && !isequal(z_pos, z_neg)
+    l_pos, l_neg = MixedLambertianFaces(0.0), MixedLambertianFaces(-0.0)
+    @test l_pos == l_neg && hash(l_pos) == hash(l_neg) && !isequal(l_pos, l_neg)
+    nan_lem = LeafEmissionMatrix([0.2;;], [0.2;;], [0.1;;], [0.1])
+    nan_lem.front[1, 1] = NaN
+    @test nan_lem != nan_lem && isequal(nan_lem, nan_lem)
+    # Axes are part of an array-holding record's value
+    q1 = PopulationQuadrature(1, 1.0, 0.0, OffsetArray([0.5], 2:2), OffsetArray([1.0], 2:2), [0.4], [0.8], PairedIllumination())
+    q2 = PopulationQuadrature(1, 1.0, 0.0, [0.5], [1.0], [0.4], [0.8], PairedIllumination())
+    @test q1 != q2 && hash(q1) != hash(q2)
+    # Duals: zero derivative equals the plain record; a nonzero derivative does not
+    @test MixedLambertianFaces(dual(0.7, 0.0)) == o.law && hash(MixedLambertianFaces(dual(0.7, 0.0))) == hash(o.law)
+    @test MixedLambertianFaces(dual(0.7, 1.0)) != o.law
+    # Records broadcast as scalars
+    @test leaf_hemispheric_emission.(o.law, [0.2, 0.4], 0.6, 0.2) ==
+          [leaf_hemispheric_emission(o.law, m, 0.6, 0.2) for m in (0.2, 0.4)]
+    # adapt_radiation_storage to Array returns an equal object of the same kind
+    for x in (o.bnd, o.atm, o.lem, o.dlem, o.lhs, o.dlhs, NoLeafEmission(), VacuumAtmosphere(),
+            QuadratureEmission([0.5], [1.0], [0.3], [0.2]), ColumnFluxWorkspace(Float64, 2))
+        y = adapt_radiation_storage(Array, x)
+        @test typeof(y) === typeof(x)
+        x isa ColumnFluxWorkspace || @test y == x
+    end
+    # Ranges become arrays of the target type with the same element type
+    rm = reshape(0.05:0.05:0.2, 2, 2)
+    r = adapt_radiation_storage(Array, LeafEmissionMatrix(rm, rm, rm, 0.05:0.05:0.1))
+    @test r.front isa Matrix{Float64} && r.out_of_window isa Vector{Float64}
+    @test r == LeafEmissionMatrix(collect(rm), collect(rm), collect(rm), [0.05, 0.1])
+end
