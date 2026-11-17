@@ -403,6 +403,25 @@ end
 _add_out_of_window(acc, lay::DualLayerHemisphericSource, model::DualLeafEmissionMatrix) =
     _add_out_of_window(_add_out_of_window(acc, lay.psii, model.psii), lay.psi, model.psi)
 
+# Number of photosystems of the layer sources (0 when they are mixed or of another
+# kind) and the numbers a leaf emission model accepts (NoLeafEmission: either).
+_photosystems(::Type{<:LayerHemisphericSource}) = 1
+_photosystems(::Type{<:DualLayerHemisphericSource}) = 2
+_photosystems(::Type) = 0
+_model_photosystems(::LeafEmissionMatrix) = (1,)
+_model_photosystems(::DualLeafEmissionMatrix) = (2,)
+_model_photosystems(::NoLeafEmission) = (1, 2)
+# An empty vector without a source element type follows the model.
+_empty_photosystems(::Type{Any}, model) = _default_photosystems(model)
+_empty_photosystems(::Type{T}, _) where {T} = _photosystems(T)
+_default_photosystems(::DualLeafEmissionMatrix) = 2
+_default_photosystems(_) = 1
+function _layer_photosystems(layers::AbstractVector, model)
+    isempty(layers) && return _empty_photosystems(eltype(layers), model)
+    n = _photosystems(typeof(first(layers)))
+    return all(l -> _photosystems(typeof(l)) == n, layers) ? n : 0
+end
+
 """
     evaluate_hemispheric_sif_spectrum(layers, emission_model, absorption_matrix, backscatter_matrix, soil_spectrum)
 
@@ -426,21 +445,10 @@ function evaluate_hemispheric_sif_spectrum(
     size(absorption_matrix) == (n_emit, nl) &&
         size(backscatter_matrix) == (n_emit, nl) ||
         throw(DimensionMismatch("Rate matrices must have (n_emit, n_layers) shape"))
-    is_single = if isempty(layers)
-        (eltype(layers) <: LayerHemisphericSource) ||
-            (eltype(layers) === Any && !(emission_model isa DualLeafEmissionMatrix))
-    else
-        all(l -> l isa LayerHemisphericSource, layers)
-    end
-    is_dual = if isempty(layers)
-        (eltype(layers) <: DualLayerHemisphericSource) ||
-            (eltype(layers) === Any && (emission_model isa DualLeafEmissionMatrix))
-    else
-        all(l -> l isa DualLayerHemisphericSource, layers)
-    end
-    (is_single && emission_model isa Union{LeafEmissionMatrix,NoLeafEmission}) ||
-        (is_dual && emission_model isa Union{DualLeafEmissionMatrix,NoLeafEmission}) ||
+    n_ps = _layer_photosystems(layers, emission_model)
+    n_ps in _model_photosystems(emission_model) ||
         throw(ArgumentError("Layer source types and leaf emission model must both be single-photosystem or both be dual-photosystem"))
+    is_single = n_ps == 1
 
     FT_fallback = _scalar_type_or(eltype(soil_spectrum), _precision_operands(emission_model))
     FT_lay = _layers_scalar_type(layers, FT_fallback)

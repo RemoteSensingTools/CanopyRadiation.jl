@@ -702,6 +702,12 @@ function photon_energy!(
     same_precision(output)
     _check_spectral_row_axes(output, photons, wavelengths_nm)
     isempty(output) && return output
-    _map_rows!(KernelAbstractions.get_backend(output), _PerWavelengthEnergy(coefficient), output, photons, wavelengths_nm)
+    _map_rows!(
+        KernelAbstractions.get_backend(output),
+        _PerWavelengthEnergy(coefficient),
+        output,
+        photons,
+        wavelengths_nm,
+    )
     return output
 end
