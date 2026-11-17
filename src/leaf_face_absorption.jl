@@ -4,7 +4,7 @@
 Evaluate `sqrt(max(0, (1 - mu) * (1 + mu)))` cleanly across primal floats and
 automatic-differentiation dual numbers.
 
-When `(1 - mu) * (1 + mu)` is identically zero (`exact_zero_scalar`) or has a
+When `(1 - mu) * (1 + mu)` is identically zero ([`CanopyRadiation.exact_zero`](@ref)) or has a
 nonpositive primal value (such as `mu = ±1` at zenith illumination or nadir
 viewing), return `zero(typeof(mu))` directly without invoking `sqrt` at zero,
 avoiding singular `NaN` tangents when differentiating with respect to other
@@ -19,11 +19,12 @@ julia> CanopyRadiation.unit_sin_from_cos(1.0)
 0.0
 ```
 """
-@inline function unit_sin_from_cos(mu::FT) where {FT<:Real}
-    require_continuous_scalar(FT, unit_sin_from_cos, (mu,))
-    P = primal_float_type(FT)
+@inline function unit_sin_from_cos(mu::Real)
+    same_precision(mu)
+    FT = typeof(mu)
+    P = primal_type(FT)
     s2 = (one(FT) - mu) * (one(FT) + mu)
-    if exact_zero_scalar(s2) || primal_scalar(s2) <= zero(P)
+    if exact_zero(s2) || primal(s2) <= zero(P)
         return zero(FT)
     end
     return sqrt(s2)
@@ -52,13 +53,7 @@ julia> source_projection(1.0, 0.0, 0.5, 1.2)
     source_cosine::Real,
     source_azimuth::Real,
 )
-    FT = promote_compatible_scalar(
-        source_projection,
-        leaf_cosine,
-        leaf_azimuth,
-        source_cosine,
-        source_azimuth,
-    )
+    FT = common_scalar_type(leaf_cosine, leaf_azimuth, source_cosine, source_azimuth)
     sin_l = convert(FT, unit_sin_from_cos(leaf_cosine))
     sin_s = convert(FT, unit_sin_from_cos(source_cosine))
     mu_l = convert(FT, leaf_cosine)
@@ -85,12 +80,7 @@ julia> beam_face_absorption(0.5, 1000.0, 0.85)
     beam_normal::Real,
     absorptance::Real,
 )
-    FT = promote_compatible_scalar(
-        beam_face_absorption,
-        projection,
-        beam_normal,
-        absorptance,
-    )
+    FT = common_scalar_type(projection, beam_normal, absorptance)
     proj = convert(FT, projection)
     bn = convert(FT, beam_normal)
     abs_f = convert(FT, absorptance)
@@ -121,13 +111,7 @@ true
     up::Real,
     absorptance::Real,
 )
-    FT = promote_compatible_scalar(
-        isotropic_face_absorption,
-        leaf_cosine,
-        down,
-        up,
-        absorptance,
-    )
+    FT = common_scalar_type(leaf_cosine, down, up, absorptance)
     mu = convert(FT, leaf_cosine)
     dn = convert(FT, down)
     up_f = convert(FT, up)
@@ -163,8 +147,7 @@ true
 ```
 """
 @inline function regular_plate_passive(plate)
-    FT = promote_compatible_scalar(
-        regular_plate_passive,
+    FT = common_scalar_type(
         plate.traversal_transmission,
         plate.traversal_absorptance,
         plate.interface_entry_transmission,

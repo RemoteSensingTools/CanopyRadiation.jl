@@ -4,10 +4,8 @@
 #
 # The five hooks are exact for plain floating-point numbers. A number type that
 # carries derivative information overloads them (for ForwardDiff.Dual a package
-# extension, or the tests when no extension is present); the code converted to this
-# policy (two_stream.jl, emission_transport.jl, column_sweeps.jl, column_batch.jl)
-# inspects the internals of a scalar type nowhere else. The remaining files still use
-# the reflection helpers in scalars.jl.
+# extension, or the tests when no extension is present); no other code in the package
+# inspects the internals of a scalar type.
 
 """
     CanopyRadiation.primal_type(::Type{T}) -> Type
@@ -32,8 +30,8 @@ primal_type(::Type{T}) where {T} = T
 
 Value of scalar `x` without derivative information, in the units of `x`. Used for
 the comparisons that select a numerical branch or validate an input (thin-slab norm,
-series cut-offs, leaf optical bounds, depths) and for hashing, so neither depends on
-how a number type compares derivative components.
+series cut-offs, leaf optical bounds, depths, cosines, ordinate grids) and for
+hashing, so neither depends on how a number type compares derivative components.
 
 # Examples
 ```jldoctest
@@ -139,3 +137,4 @@ end
 @inline _positive(x) = x > zero(x)
 @inline _nonnegative(x) = x >= zero(x)
 @inline _unit_interval(x) = zero(x) <= x <= one(x)
+@inline _cosine(x) = -one(x) <= x <= one(x)

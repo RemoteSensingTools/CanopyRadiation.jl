@@ -4,7 +4,7 @@
 Supertype for leaf-population ordering conventions within each quadrature depth
 ([`PairedIllumination`](@ref) and [`BlockedIllumination`](@ref)).
 """
-abstract type AbstractPopulationLayout end
+abstract type AbstractPopulationLayout <: RadiationRecord end
 
 """
     PairedIllumination()
@@ -20,8 +20,6 @@ PairedIllumination()
 """
 struct PairedIllumination <: AbstractPopulationLayout end
 
-broadcastable(l::PairedIllumination) = Ref(l)
-
 """
     BlockedIllumination()
 
@@ -35,8 +33,6 @@ BlockedIllumination()
 ```
 """
 struct BlockedIllumination <: AbstractPopulationLayout end
-
-broadcastable(l::BlockedIllumination) = Ref(l)
 
 """
     PopulationQuadrature(layer, lai, lai_above, depths, depth_weights, cos_inclinations, azimuths, layout)
@@ -60,7 +56,7 @@ struct PopulationQuadrature{
     VD<:AbstractVector{FT},
     VO<:AbstractVector{FT},
     L<:AbstractPopulationLayout,
-}
+} <: RadiationRecord
     layer::Int
     lai::FT
     lai_above::FT
@@ -85,26 +81,22 @@ struct PopulationQuadrature{
         VO<:AbstractVector{FT},
         L<:AbstractPopulationLayout,
     }
-        require_continuous_scalar(
-            FT,
-            PopulationQuadrature,
-            (layer, lai, lai_above, depths, depth_weights, cos_inclinations, azimuths, layout),
-        )
-        P = primal_float_type(FT)
+        same_precision(lai)
+        P = primal_type(FT)
         axes(cos_inclinations) == axes(azimuths) ||
             throw(ArgumentError("Leaf inclination and azimuth vectors must share axes"))
         axes(depths) == axes(depth_weights) ||
             throw(ArgumentError("Depth coordinates and weights must share axes"))
         layer > 0 &&
-            finite_scalar(lai) &&
-            primal_scalar(lai) >= zero(P) &&
-            finite_scalar(lai_above) &&
-            primal_scalar(lai_above) >= zero(P) ||
+            all_finite(lai) &&
+            primal(lai) >= zero(P) &&
+            all_finite(lai_above) &&
+            primal(lai_above) >= zero(P) ||
             throw(ArgumentError("Invalid canopy layer index or leaf area"))
-        isempty(depths) == iszero(primal_scalar(lai)) ||
+        isempty(depths) == iszero(primal(lai)) ||
             throw(ArgumentError("Only zero-LAI layers have empty depth quadrature"))
         isempty(azimuths) &&
-            !iszero(primal_scalar(lai)) &&
+            !iszero(primal(lai)) &&
             throw(ArgumentError("Nonempty layers require orientation quadrature"))
         return new{FT,VD,VO,L}(
             Int(layer),
@@ -120,42 +112,7 @@ struct PopulationQuadrature{
 end
 
 Base.eltype(::Type{<:PopulationQuadrature{FT}}) where {FT} = FT
-Base.eltype(g::PopulationQuadrature) = typeof(g.lai)
 Base.length(g::PopulationQuadrature) = 2 * length(g.depths) * length(g.azimuths)
-
-Base.:(==)(a::PopulationQuadrature, b::PopulationQuadrature) =
-    a.layer == b.layer &&
-    a.lai == b.lai &&
-    a.lai_above == b.lai_above &&
-    a.layout == b.layout &&
-    axes(a.depths) == axes(b.depths) &&
-    axes(a.cos_inclinations) == axes(b.cos_inclinations) &&
-    a.depths == b.depths &&
-    a.depth_weights == b.depth_weights &&
-    a.cos_inclinations == b.cos_inclinations &&
-    a.azimuths == b.azimuths
-
-Base.isequal(a::PopulationQuadrature, b::PopulationQuadrature) =
-    a.layer == b.layer &&
-    isequal(a.lai, b.lai) &&
-    isequal(a.lai_above, b.lai_above) &&
-    a.layout == b.layout &&
-    _isequal_array(a.depths, b.depths) &&
-    _isequal_array(a.depth_weights, b.depth_weights) &&
-    _isequal_array(a.cos_inclinations, b.cos_inclinations) &&
-    _isequal_array(a.azimuths, b.azimuths)
-
-function Base.hash(g::PopulationQuadrature, h::UInt)
-    h = hash(:PopulationQuadrature, h)
-    h = hash(g.layer, h)
-    h = _hash_scalar(g.lai, h)
-    h = _hash_scalar(g.lai_above, h)
-    h = _hash_array(g.depths, h)
-    h = _hash_array(g.depth_weights, h)
-    h = _hash_array(g.cos_inclinations, h)
-    h = _hash_array(g.azimuths, h)
-    return hash(g.layout, h)
-end
 
 @inline _orientation_step(::PairedIllumination, local_index::Integer, ::Integer) =
     (local_index ÷ 2, isodd(local_index))
@@ -225,9 +182,9 @@ function leaf_inclination_quadrature(
     n_leaf::Integer,
     ::Type{FT} = Float64,
 ) where {FT<:Real}
-    require_continuous_scalar(FT, leaf_inclination_quadrature, (lad, n_leaf, FT))
+    same_precision(zero(FT))
     n_leaf > 0 || throw(ArgumentError("n_leaf must be positive"))
-    P = primal_float_type(FT)
+    P = primal_type(FT)
     theta_p, w_p = gauleg(Int(n_leaf), zero(P), P(pi) / P(2))
     theta = FT.(theta_p)
     w = FT.(w_p)
@@ -241,8 +198,7 @@ function leaf_inclination_quadrature(
         w_measure[i] = wm
         mass += wm
     end
-    finite_scalar(mass) && primal_scalar(mass) > zero(P) ||
-        throw(ArgumentError("Leaf-inclination quadrature must have finite positive mass"))
+    _checked(mass, _positive, "Leaf-inclination quadrature must have finite positive mass")
     inv_mass = inv(mass)
     @inbounds for i in eachindex(w_measure)
         w_measure[i] *= inv_mass
@@ -270,15 +226,16 @@ true
 """
 function orientation_hemisphere_samples(
     lad::AbstractLeafDistribution,
-    mu_s::FT;
+    mu_s::Real;
     n_leaf::Integer = 16,
     n_azimuth::Integer = 16,
-) where {FT<:Real}
-    require_continuous_scalar(FT, orientation_hemisphere_samples, (lad, mu_s))
+)
+    same_precision(mu_s)
+    FT = typeof(mu_s)
     n_leaf > 0 && n_azimuth > 0 ||
         throw(ArgumentError("n_leaf and n_azimuth must be positive"))
-    P = primal_float_type(FT)
-    finite_scalar(mu_s) && -one(P) <= primal_scalar(mu_s) <= one(P) ||
+    P = primal_type(FT)
+    all_finite(mu_s) && -one(P) <= primal(mu_s) <= one(P) ||
         throw(ArgumentError("Solar cosine mu_s must be finite and lie in [-1, 1]"))
     leaf = leaf_inclination_quadrature(lad, n_leaf, FT)
     sin_s = unit_sin_from_cos(mu_s)
@@ -295,18 +252,18 @@ function orientation_hemisphere_samples(
         a = mu_s * cos_th
         b = sin_s * sin_th
         split =
-            primal_scalar(b) > primal_scalar(abs(a)) ?
+            primal(b) > primal(abs(a)) ?
             acos(clamp(-a / b, -one(FT), one(FT))) :
-            (primal_scalar(a) >= zero(P) ? FT(pi) : zero(FT))
+            (primal(a) >= zero(P) ? FT(pi) : zero(FT))
         for (left, right) in ((zero(FT), split), (split, FT(pi)))
-            primal_scalar(right) <= primal_scalar(left) && continue
+            primal(right) <= primal(left) && continue
             half = (right - left) / FT(2)
             mid = (right + left) / FT(2)
             for j in eachindex(xi, w_ref)
                 phi = mid + half * xi[j]
                 wp = half * w_ref[j]
                 proj = a + b * cos(phi)
-                push!(projections, primal_scalar(proj) >= zero(P) ? proj : -proj)
+                push!(projections, primal(proj) >= zero(P) ? proj : -proj)
                 push!(areas, w_th * wp / FT(pi))
                 push!(cos_inclinations, cos_th)
                 push!(azimuths, phi)

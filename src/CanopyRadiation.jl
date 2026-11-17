@@ -11,6 +11,27 @@ scattering types without depending on `vSmartMOM`, leaf physiology, or host
 atmospheric state packages, preserving acyclic composition across `Float32`,
 `Float64`, `OffsetArray`, `CuArray`, and `ForwardDiff` automatic
 differentiation.
+
+Source files, one per process or software boundary:
+
+- `precision.jl`: scalar hooks and the precision policy; `records.jl`: equality,
+  hashing, broadcasting and conversion shared by every record;
+  `buffer_aliasing.jl`: output-buffer aliasing checks.
+- `two_stream.jl`: two-stream layer rates and operators, passive column solvers;
+  `emission_transport.jl`: volume emission, emitting layers and cavity solvers;
+  `column_sweeps.jl`: the adding sweeps shared by the vector and batch solvers;
+  `column_batch.jl`: `KernelAbstractions` batch column kernels.
+- `leaf_face_absorption.jl`: beam and isotropic absorption by the leaf faces;
+  `leaf_population.jl`: depth and leaf-orientation quadrature of leaf
+  populations; `emission_angular_law.jl`: angular emission laws of the leaf faces
+  and the depth sources they give; `atmosphere_coupling.jl`: emission boundary
+  coupled to a source-free atmosphere.
+- `leaf_spectral_emission.jl`: leaf spectral escape matrices and photon unit
+  conversions; `spectral_basis.jl`: spectral grid maps and excitation bases.
+- `hemispheric_moments.jl`: hemisphere moments and their expansion into depth
+  sources (scalar functions and batch kernels); `sif_assembly.jl`: layer
+  hemispheric sources and canopy SIF evaluation; `device_storage.jl`: transfer of
+  array-backed objects between host and device storage.
 """
 module CanopyRadiation
 
@@ -48,7 +69,6 @@ end
 
 include("precision.jl")
 include("records.jl")
-include("scalars.jl")
 include("buffer_aliasing.jl")
 include("two_stream.jl")
 include("emission_transport.jl")

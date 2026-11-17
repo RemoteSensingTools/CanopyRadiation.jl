@@ -22,7 +22,7 @@ struct LayerHemisphericSource{
     FT<:Real,
     V<:AbstractVector{FT},
     M<:AbstractMatrix{FT},
-}
+} <: RadiationRecord
     lai::FT
     fractional_depths::V
     weights::V
@@ -39,28 +39,24 @@ struct LayerHemisphericSource{
         physical_channels::V;
         validate::Bool = true,
     ) where {FT<:Real,V<:AbstractVector{FT},M<:AbstractMatrix{FT}}
-        require_continuous_scalar(
-            FT,
-            LayerHemisphericSource,
-            (lai, fractional_depths, weights, plus, minus, physical_channels),
-        )
+        same_precision(lai)
         axes(fractional_depths) == axes(weights) ||
             throw(DimensionMismatch("fractional_depths and weights must share axes"))
         axes(plus) == axes(minus) ==
             (axes(fractional_depths, 1), axes(physical_channels, 1)) ||
             throw(DimensionMismatch("plus/minus must have (depth, channel) axes matching fractional_depths and physical_channels"))
         if validate
-            P = primal_float_type(FT)
-            finite_scalar(lai) && primal_scalar(lai) >= zero(P) ||
-                throw(ArgumentError("lai must be finite and nonnegative"))
+            _checked(lai, _nonnegative, "lai must be finite and nonnegative")
             for x in _host_linear(fractional_depths)
-                finite_scalar(x) && zero(P) <= primal_scalar(x) <= one(P) ||
-                    throw(ArgumentError("fractional_depths must be finite and lie in [0, 1]"))
+                _checked(x, _unit_interval, "fractional_depths must be finite and lie in [0, 1]")
             end
             for arr in (weights, plus, minus, physical_channels)
                 for x in _host_linear(arr)
-                    finite_scalar(x) && primal_scalar(x) >= zero(P) ||
-                        throw(ArgumentError("LayerHemisphericSource weights, moments, and channels must be finite and nonnegative"))
+                    _checked(
+                        x,
+                        _nonnegative,
+                        "LayerHemisphericSource weights, moments, and channels must be finite and nonnegative",
+                    )
                 end
             end
         end
@@ -76,35 +72,6 @@ struct LayerHemisphericSource{
 end
 
 Base.eltype(::Type{<:LayerHemisphericSource{FT}}) where {FT} = FT
-Base.eltype(s::LayerHemisphericSource) = typeof(s.lai)
-
-Base.:(==)(a::LayerHemisphericSource, b::LayerHemisphericSource) =
-    a.lai == b.lai &&
-    axes(a.fractional_depths) == axes(b.fractional_depths) &&
-    axes(a.plus) == axes(b.plus) &&
-    a.fractional_depths == b.fractional_depths &&
-    a.weights == b.weights &&
-    a.plus == b.plus &&
-    a.minus == b.minus &&
-    a.physical_channels == b.physical_channels
-
-Base.isequal(a::LayerHemisphericSource, b::LayerHemisphericSource) =
-    isequal(a.lai, b.lai) &&
-    _isequal_array(a.fractional_depths, b.fractional_depths) &&
-    _isequal_array(a.weights, b.weights) &&
-    _isequal_array(a.plus, b.plus) &&
-    _isequal_array(a.minus, b.minus) &&
-    _isequal_array(a.physical_channels, b.physical_channels)
-
-function Base.hash(s::LayerHemisphericSource, h::UInt)
-    h = hash(:LayerHemisphericSource, h)
-    h = _hash_scalar(s.lai, h)
-    h = _hash_array(s.fractional_depths, h)
-    h = _hash_array(s.weights, h)
-    h = _hash_array(s.plus, h)
-    h = _hash_array(s.minus, h)
-    return _hash_array(s.physical_channels, h)
-end
 
 """
     DualLayerHemisphericSource(psii, psi)
@@ -129,7 +96,7 @@ true
 struct DualLayerHemisphericSource{
     L2<:LayerHemisphericSource,
     L1<:LayerHemisphericSource,
-}
+} <: RadiationRecord
     psii::L2
     psi::L1
 
@@ -149,35 +116,26 @@ struct DualLayerHemisphericSource{
 end
 
 Base.eltype(::Type{<:DualLayerHemisphericSource{L2}}) where {L2} = eltype(L2)
-Base.eltype(d::DualLayerHemisphericSource) = eltype(d.psii)
-Base.:(==)(a::DualLayerHemisphericSource, b::DualLayerHemisphericSource) =
-    (a.psii == b.psii) && (a.psi == b.psi)
-Base.isequal(a::DualLayerHemisphericSource, b::DualLayerHemisphericSource) =
-    isequal(a.psii, b.psii) && isequal(a.psi, b.psi)
 
-function Base.hash(d::DualLayerHemisphericSource, h::UInt)
-    h = hash(:DualLayerHemisphericSource, h)
-    h = hash(d.psii, h)
-    return hash(d.psi, h)
-end
+# Leaf emission models that take part in the precision of a SIF evaluation: active
+# photosystem matrices only.
+@inline _precision_operands(::Union{Nothing,NoLeafEmission}) = ()
+@inline _precision_operands(m::LeafEmissionMatrix) = (m,)
+@inline _precision_operands(d::DualLeafEmissionMatrix) =
+    (_precision_operands(d.psii)..., _precision_operands(d.psi)...)
 
-@inline _model_scalar_probe(::Nothing, fallback) = fallback
-@inline _model_scalar_probe(::NoLeafEmission, fallback) = fallback
-@inline _model_scalar_probe(m::LeafEmissionMatrix, _) = zero(eltype(m))
-@inline function _model_scalar_probe(d::DualLeafEmissionMatrix, fallback)
-    d.psii isa LeafEmissionMatrix && return zero(eltype(d.psii))
-    d.psi isa LeafEmissionMatrix && return zero(eltype(d.psi))
-    return fallback
-end
+# Scalar type of the operands, or `fallback` when there are none.
+@inline _scalar_type_or(::Type{F}, ::Tuple{}) where {F} = F
+@inline _scalar_type_or(::Type, operands::Tuple) = common_scalar_type(operands...)
 
-@inline function _layers_scalar_type(f, layers::AbstractVector, fallback::Type = Float64)
+@inline function _layers_scalar_type(layers::AbstractVector, fallback::Type)
     T = eltype(eltype(layers))
     isconcretetype(T) && return T
     isempty(layers) && return fallback
     FT = eltype(layers[firstindex(layers)])
-    require_continuous_scalar(FT, f, (layers,))
+    same_precision(zero(FT))
     for k in eachindex(layers)
-        FT = promote_compatible_scalar(f, zero(FT), zero(eltype(layers[k])))
+        FT = common_scalar_type(zero(FT), layers[k])
     end
     return FT
 end
@@ -205,21 +163,32 @@ end
     return nothing
 end
 
+# Depth sources of one photosystem for emission bin `bin`, written into (or, with
+# `accumulate`, added to) the buffers; returns the layer photon budget. A disabled
+# photosystem contributes zeros.
+function _eval_single_layer_bin!(
+    up_buf::AbstractVector{FT_buf},
+    down_buf::AbstractVector{FT_buf},
+    ::LayerHemisphericSource,
+    ::Union{Nothing,NoLeafEmission},
+    ::Integer,
+    accumulate::Bool,
+) where {FT_buf<:Real}
+    if !accumulate
+        fill!(up_buf, zero(FT_buf))
+        fill!(down_buf, zero(FT_buf))
+    end
+    return (; internal = zero(FT_buf), reabsorbed = zero(FT_buf), escaped = zero(FT_buf))
+end
+
 function _eval_single_layer_bin!(
     up_buf::AbstractVector{FT_buf},
     down_buf::AbstractVector{FT_buf},
     src::LayerHemisphericSource,
-    model::Union{Nothing,NoLeafEmission,LeafEmissionMatrix},
-    bin::Integer;
-    accumulate::Bool = false,
+    model::LeafEmissionMatrix,
+    bin::Integer,
+    accumulate::Bool,
 ) where {FT_buf<:Real}
-    if model === nothing || model isa NoLeafEmission
-        if !accumulate
-            fill!(up_buf, zero(FT_buf))
-            fill!(down_buf, zero(FT_buf))
-        end
-        return (; internal = zero(FT_buf), reabsorbed = zero(FT_buf), escaped = zero(FT_buf))
-    end
     _validate_layer_model_channels(src, model)
     axes(up_buf, 1) == axes(down_buf, 1) == axes(src.plus, 1) ||
         throw(DimensionMismatch("Layer hemispheric source depth buffer axes must match axes(src.plus, 1)"))
@@ -254,6 +223,16 @@ function _eval_single_layer_bin!(
     return (; internal, reabsorbed = reabs, escaped)
 end
 
+# Emission bin `bin` must exist in an active photosystem matrix.
+@inline _check_emission_bin(::Union{Nothing,NoLeafEmission}, ::Integer) = nothing
+@inline function _check_emission_bin(m::LeafEmissionMatrix, bin::Integer)
+    bin in axes(m.front, 1) || throw(BoundsError(m.front, (bin, :)))
+    return nothing
+end
+
+@inline _as_dual_model(d::DualLeafEmissionMatrix) = d
+@inline _as_dual_model(::NoLeafEmission) = DualLeafEmissionMatrix(NoLeafEmission(), NoLeafEmission())
+
 """
     evaluate_hemispheric_sif_bin(layers, emission_model, absorption_rates, backscatter_rates, soil_reflect, bin::Integer)
 
@@ -277,21 +256,14 @@ function evaluate_hemispheric_sif_bin(
     nl = length(layers)
     length(absorption_rates) == nl && length(backscatter_rates) == nl ||
         throw(DimensionMismatch("Layer rate vectors must match length(layers)"))
-    if model isa LeafEmissionMatrix
-        bin in axes(model.front, 1) || throw(BoundsError(model.front, (bin, :)))
-    end
-    FT_fallback = typeof(_model_scalar_probe(model, zero(eltype(absorption_rates))))
-    FT_lay = _layers_scalar_type(evaluate_hemispheric_sif_bin, layers, FT_fallback)
-    FT_src = promote_compatible_scalar(
-        evaluate_hemispheric_sif_bin,
-        zero(FT_lay),
-        _model_scalar_probe(model, zero(FT_lay)),
-    )
-    FT_out = promote_compatible_scalar(
-        evaluate_hemispheric_sif_bin,
+    _check_emission_bin(model, bin)
+    FT_fallback = _scalar_type_or(eltype(absorption_rates), _precision_operands(model))
+    FT_lay = _layers_scalar_type(layers, FT_fallback)
+    FT_src = common_scalar_type(zero(FT_lay), _precision_operands(model)...)
+    FT_out = common_scalar_type(
         zero(FT_src),
-        zero(eltype(absorption_rates)),
-        zero(eltype(backscatter_rates)),
+        absorption_rates,
+        backscatter_rates,
         soil_reflect,
     )
     emitting = Vector{EmittingLayer{FT_out}}(undef, nl)
@@ -306,7 +278,7 @@ function evaluate_hemispheric_sif_bin(
         _validate_layer_model_channels(src, model)
         up_d = similar(src.fractional_depths, FT_src)
         dn_d = similar(src.fractional_depths, FT_src)
-        bud = _eval_single_layer_bin!(up_d, dn_d, src, model, bin; accumulate = false)
+        bud = _eval_single_layer_bin!(up_d, dn_d, src, model, bin, false)
         internal[s + 1] = convert(FT_out, bud.internal)
         within_leaf[s + 1] = convert(FT_out, bud.reabsorbed)
         escaped[s + 1] = convert(FT_out, bud.escaped)
@@ -341,31 +313,19 @@ function evaluate_hemispheric_sif_bin(
     soil_reflect::Real,
     bin::Integer,
 )
-    dm = dual_model isa NoLeafEmission ?
-         DualLeafEmissionMatrix(NoLeafEmission(), NoLeafEmission()) : dual_model
+    dm = _as_dual_model(dual_model)
     nl = length(layers)
     length(absorption_rates) == nl && length(backscatter_rates) == nl ||
         throw(DimensionMismatch("Layer rate vectors must match length(layers)"))
-    if dm.psii isa LeafEmissionMatrix
-        bin in axes(dm.psii.front, 1) ||
-            throw(BoundsError(dm.psii.front, (bin, :)))
-    end
-    if dm.psi isa LeafEmissionMatrix
-        bin in axes(dm.psi.front, 1) ||
-            throw(BoundsError(dm.psi.front, (bin, :)))
-    end
-    FT_fallback = typeof(_model_scalar_probe(dm, zero(eltype(absorption_rates))))
-    FT_lay = _layers_scalar_type(evaluate_hemispheric_sif_bin, layers, FT_fallback)
-    FT_src = promote_compatible_scalar(
-        evaluate_hemispheric_sif_bin,
-        zero(FT_lay),
-        _model_scalar_probe(dm, zero(FT_lay)),
-    )
-    FT_out = promote_compatible_scalar(
-        evaluate_hemispheric_sif_bin,
+    _check_emission_bin(dm.psii, bin)
+    _check_emission_bin(dm.psi, bin)
+    FT_fallback = _scalar_type_or(eltype(absorption_rates), _precision_operands(dm))
+    FT_lay = _layers_scalar_type(layers, FT_fallback)
+    FT_src = common_scalar_type(zero(FT_lay), _precision_operands(dm)...)
+    FT_out = common_scalar_type(
         zero(FT_src),
-        zero(eltype(absorption_rates)),
-        zero(eltype(backscatter_rates)),
+        absorption_rates,
+        backscatter_rates,
         soil_reflect,
     )
     emitting = Vector{EmittingLayer{FT_out}}(undef, nl)
@@ -385,16 +345,16 @@ function evaluate_hemispheric_sif_bin(
             dn_d,
             dsrc.psii,
             dm.psii,
-            bin;
-            accumulate = false,
+            bin,
+            false,
         )
         b1 = _eval_single_layer_bin!(
             up_d,
             dn_d,
             dsrc.psi,
             dm.psi,
-            bin;
-            accumulate = true,
+            bin,
+            true,
         )
         internal[s + 1] = convert(FT_out, b2.internal + b1.internal)
         within_leaf[s + 1] = convert(FT_out, b2.reabsorbed + b1.reabsorbed)
@@ -421,6 +381,27 @@ function evaluate_hemispheric_sif_bin(
         escaped,
     )
 end
+
+# Emission-bin axis of the model: that of the first active photosystem matrix, or
+# 1:n_emit when no photosystem is active.
+_emission_bin_axis(m::LeafEmissionMatrix, _) = collect(axes(m.front, 1))
+_emission_bin_axis(::NoLeafEmission, n_emit) = collect(1:n_emit)
+_emission_bin_axis(d::DualLeafEmissionMatrix, n_emit) = _first_bin_axis(d.psii, d.psi, n_emit)
+_first_bin_axis(psii::LeafEmissionMatrix, _, n_emit) = _emission_bin_axis(psii, n_emit)
+_first_bin_axis(::NoLeafEmission, psi, n_emit) = _emission_bin_axis(psi, n_emit)
+
+# Out-of-window photons of a layer, added to `acc` channel by channel (PSII before
+# PSI); zero for a disabled photosystem.
+_add_out_of_window(acc, _, _) = acc
+function _add_out_of_window(acc, lay::LayerHemisphericSource, model::LeafEmissionMatrix)
+    FT = typeof(acc)
+    @inbounds for c in axes(lay.physical_channels, 1)
+        acc += convert(FT, model.out_of_window[c]) * convert(FT, lay.physical_channels[c])
+    end
+    return acc
+end
+_add_out_of_window(acc, lay::DualLayerHemisphericSource, model::DualLeafEmissionMatrix) =
+    _add_out_of_window(_add_out_of_window(acc, lay.psii, model.psii), lay.psi, model.psi)
 
 """
     evaluate_hemispheric_sif_spectrum(layers, emission_model, absorption_matrix, backscatter_matrix, soil_spectrum)
@@ -461,20 +442,19 @@ function evaluate_hemispheric_sif_spectrum(
         (is_dual && emission_model isa Union{DualLeafEmissionMatrix,NoLeafEmission}) ||
         throw(ArgumentError("Layer source types and leaf emission model must both be single-photosystem or both be dual-photosystem"))
 
-    FT_fallback = typeof(_model_scalar_probe(emission_model, zero(eltype(soil_spectrum))))
-    FT_lay = _layers_scalar_type(evaluate_hemispheric_sif_spectrum, layers, FT_fallback)
-    FT = promote_compatible_scalar(
-        evaluate_hemispheric_sif_spectrum,
+    FT_fallback = _scalar_type_or(eltype(soil_spectrum), _precision_operands(emission_model))
+    FT_lay = _layers_scalar_type(layers, FT_fallback)
+    FT = common_scalar_type(
         zero(FT_lay),
-        _model_scalar_probe(emission_model, zero(FT_lay)),
-        zero(eltype(absorption_matrix)),
-        zero(eltype(backscatter_matrix)),
-        zero(eltype(soil_spectrum)),
+        _precision_operands(emission_model)...,
+        absorption_matrix,
+        backscatter_matrix,
+        soil_spectrum,
     )
     l0 = firstindex(layers)
     for k in 1:nl
         lay = layers[l0 + k - 1]
-        promote_compatible_scalar(evaluate_hemispheric_sif_spectrum, zero(FT), zero(eltype(lay)))
+        common_scalar_type(zero(FT), lay)
         if is_single
             _validate_layer_model_channels(lay, emission_model)
         else
@@ -499,17 +479,7 @@ function evaluate_hemispheric_sif_spectrum(
     escaped = Matrix{FT}(undef, n_emit, nl)
     r_ax = collect(axes(absorption_matrix, 1))
     s_ax = collect(axes(soil_spectrum, 1))
-    b_ax = if emission_model isa LeafEmissionMatrix
-        collect(axes(emission_model.front, 1))
-    elseif emission_model isa DualLeafEmissionMatrix &&
-           emission_model.psii isa LeafEmissionMatrix
-        collect(axes(emission_model.psii.front, 1))
-    elseif emission_model isa DualLeafEmissionMatrix &&
-           emission_model.psi isa LeafEmissionMatrix
-        collect(axes(emission_model.psi.front, 1))
-    else
-        collect(1:n_emit)
-    end
+    b_ax = _emission_bin_axis(emission_model, n_emit)
     length(b_ax) == n_emit ||
         throw(DimensionMismatch("Emission model bin count must match length(soil_spectrum)"))
     for m in 1:n_emit
@@ -535,30 +505,7 @@ function evaluate_hemispheric_sif_spectrum(
     out_of_window = zeros(FT, nl)
     for k in 1:nl
         lay = layers_typed[firstindex(layers_typed) + k - 1]
-        if lay isa LayerHemisphericSource && emission_model isa LeafEmissionMatrix
-            acc = zero(FT)
-            @inbounds for c in axes(lay.physical_channels, 1)
-                acc += convert(FT, emission_model.out_of_window[c]) *
-                       convert(FT, lay.physical_channels[c])
-            end
-            out_of_window[k] = acc
-        elseif lay isa DualLayerHemisphericSource &&
-               emission_model isa DualLeafEmissionMatrix
-            acc = zero(FT)
-            if emission_model.psii isa LeafEmissionMatrix
-                @inbounds for c in axes(lay.psii.physical_channels, 1)
-                    acc += convert(FT, emission_model.psii.out_of_window[c]) *
-                           convert(FT, lay.psii.physical_channels[c])
-                end
-            end
-            if emission_model.psi isa LeafEmissionMatrix
-                @inbounds for c in axes(lay.psi.physical_channels, 1)
-                    acc += convert(FT, emission_model.psi.out_of_window[c]) *
-                           convert(FT, lay.psi.physical_channels[c])
-                end
-            end
-            out_of_window[k] = acc
-        end
+        out_of_window[k] = _add_out_of_window(zero(FT), lay, emission_model)
     end
     return (;
         top,

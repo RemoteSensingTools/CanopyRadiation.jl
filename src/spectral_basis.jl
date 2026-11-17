@@ -4,7 +4,9 @@
 Supertype for nonnegative point-response spectral interpolation operators
 ([`IdentitySpectralMap`](@ref) and [`LinearSpectralMap`](@ref)).
 """
-abstract type AbstractSpectralMap{FT<:AbstractFloat} end
+abstract type AbstractSpectralMap{FT<:AbstractFloat} <: RadiationRecord end
+
+Base.eltype(::Type{<:AbstractSpectralMap{FT}}) where {FT} = FT
 
 function _checked_wavelength_grid(grid::AbstractVector{FT}) where {FT<:AbstractFloat}
     isempty(grid) && throw(ArgumentError("Spectral grid cannot be empty"))
@@ -36,14 +38,6 @@ struct IdentitySpectralMap{FT<:AbstractFloat} <: AbstractSpectralMap{FT}
     IdentitySpectralMap(grid::AbstractVector{FT}) where {FT<:AbstractFloat} =
         new{FT}(_checked_wavelength_grid(grid))
 end
-
-Base.eltype(::Type{IdentitySpectralMap{FT}}) where {FT} = FT
-Base.eltype(m::IdentitySpectralMap) = eltype(m.wavelengths)
-Base.:(==)(a::IdentitySpectralMap, b::IdentitySpectralMap) = a.wavelengths == b.wavelengths
-Base.isequal(a::IdentitySpectralMap, b::IdentitySpectralMap) =
-    _isequal_array(a.wavelengths, b.wavelengths)
-Base.hash(m::IdentitySpectralMap, h::UInt) =
-    _hash_array(m.wavelengths, hash(:IdentitySpectralMap, h))
 
 """
     LinearSpectralMap(anchors, targets)
@@ -92,31 +86,6 @@ struct LinearSpectralMap{FT<:AbstractFloat} <: AbstractSpectralMap{FT}
         end
         return new{FT}(a, t, lower, upper, weights)
     end
-end
-
-Base.eltype(::Type{LinearSpectralMap{FT}}) where {FT} = FT
-Base.eltype(m::LinearSpectralMap) = eltype(m.anchors)
-Base.:(==)(a::LinearSpectralMap, b::LinearSpectralMap) =
-    a.anchors == b.anchors &&
-    a.targets == b.targets &&
-    a.lower == b.lower &&
-    a.upper == b.upper &&
-    a.upper_weight == b.upper_weight
-
-Base.isequal(a::LinearSpectralMap, b::LinearSpectralMap) =
-    _isequal_array(a.anchors, b.anchors) &&
-    _isequal_array(a.targets, b.targets) &&
-    isequal(a.lower, b.lower) &&
-    isequal(a.upper, b.upper) &&
-    _isequal_array(a.upper_weight, b.upper_weight)
-
-function Base.hash(m::LinearSpectralMap, h::UInt)
-    h = hash(:LinearSpectralMap, h)
-    h = _hash_array(m.anchors, h)
-    h = _hash_array(m.targets, h)
-    h = hash(m.lower, h)
-    h = hash(m.upper, h)
-    return _hash_array(m.upper_weight, h)
 end
 
 """

@@ -15,6 +15,8 @@ true
 """
 struct FullEmissionSupport <: AbstractEmissionSupport end
 
+# A subtype of the CanopyOptics support type, so not a RadiationRecord: singleton
+# equality and hashing are Base's; it broadcasts as a scalar.
 broadcastable(s::FullEmissionSupport) = Ref(s)
 
 @inline CanopyOptics.emission_allowed(::FullEmissionSupport, ::FT, ::FT) where {FT<:AbstractFloat} =
@@ -27,7 +29,7 @@ Supertype for leaf spectral fluorescence escape models
 ([`NoLeafEmission`](@ref), [`LeafEmissionMatrix`](@ref), and
 [`DualLeafEmissionMatrix`](@ref)).
 """
-abstract type AbstractLeafEmission end
+abstract type AbstractLeafEmission <: RadiationRecord end
 
 """
     NoLeafEmission()
@@ -42,8 +44,6 @@ NoLeafEmission()
 ```
 """
 struct NoLeafEmission <: AbstractLeafEmission end
-
-broadcastable(m::NoLeafEmission) = Ref(m)
 
 """
     LeafEmissionMatrix(front, back, reabsorbed)
@@ -86,11 +86,7 @@ struct LeafEmissionMatrix{
         reabsorbed::A,
         out_of_window::V,
     ) where {FT<:Real,A<:AbstractMatrix{FT},V<:AbstractVector{FT}}
-        require_continuous_scalar(
-            FT,
-            LeafEmissionMatrix,
-            (front, back, reabsorbed, out_of_window),
-        )
+        same_precision(front)
         axes(front) == axes(back) == axes(reabsorbed) && !isempty(front) ||
             throw(DimensionMismatch("Photon-fate matrices must share nonempty axes"))
         axes(out_of_window, 1) == axes(front, 2) ||
@@ -104,7 +100,7 @@ function LeafEmissionMatrix(
     back::A,
     reabsorbed::A,
 ) where {FT<:Real,A<:AbstractMatrix{FT}}
-    require_continuous_scalar(FT, LeafEmissionMatrix, (front, back, reabsorbed))
+    same_precision(front)
     axes(front) == axes(back) == axes(reabsorbed) && !isempty(front) ||
         throw(DimensionMismatch("Photon-fate matrices must share nonempty axes"))
     oow = fill!(similar(front, FT, (axes(front, 2),)), zero(FT))
@@ -112,28 +108,6 @@ function LeafEmissionMatrix(
 end
 
 Base.eltype(::Type{<:LeafEmissionMatrix{FT}}) where {FT} = FT
-Base.eltype(m::LeafEmissionMatrix) = eltype(m.front)
-
-Base.:(==)(a::LeafEmissionMatrix, b::LeafEmissionMatrix) =
-    axes(a.front) == axes(b.front) &&
-    a.front == b.front &&
-    a.back == b.back &&
-    a.reabsorbed == b.reabsorbed &&
-    a.out_of_window == b.out_of_window
-
-Base.isequal(a::LeafEmissionMatrix, b::LeafEmissionMatrix) =
-    _isequal_array(a.front, b.front) &&
-    _isequal_array(a.back, b.back) &&
-    _isequal_array(a.reabsorbed, b.reabsorbed) &&
-    _isequal_array(a.out_of_window, b.out_of_window)
-
-function Base.hash(m::LeafEmissionMatrix, h::UInt)
-    h = hash(:LeafEmissionMatrix, h)
-    h = _hash_array(m.front, h)
-    h = _hash_array(m.back, h)
-    h = _hash_array(m.reabsorbed, h)
-    return _hash_array(m.out_of_window, h)
-end
 
 """
     DualLeafEmissionMatrix(psii, psi)
@@ -162,25 +136,20 @@ struct DualLeafEmissionMatrix{P2<:AbstractLeafEmission,P1<:AbstractLeafEmission}
         psii::P2,
         psi::P1,
     ) where {P2<:AbstractLeafEmission,P1<:AbstractLeafEmission}
-        if psii isa LeafEmissionMatrix && psi isa LeafEmissionMatrix
-            eltype(psii) === eltype(psi) ||
-                throw(ArgumentError("PSII and PSI LeafEmissionMatrix models must share scalar type"))
-            axes(psii.front, 1) == axes(psi.front, 1) ||
-                throw(DimensionMismatch("PSII and PSI LeafEmissionMatrix models must share emission-bin axis"))
-        end
+        _check_photosystem_pair(psii, psi)
         return new{P2,P1}(psii, psi)
     end
 end
 
-Base.:(==)(a::DualLeafEmissionMatrix, b::DualLeafEmissionMatrix) =
-    (a.psii == b.psii) && (a.psi == b.psi)
-Base.isequal(a::DualLeafEmissionMatrix, b::DualLeafEmissionMatrix) =
-    isequal(a.psii, b.psii) && isequal(a.psi, b.psi)
-
-function Base.hash(d::DualLeafEmissionMatrix, h::UInt)
-    h = hash(:DualLeafEmissionMatrix, h)
-    h = hash(d.psii, h)
-    return hash(d.psi, h)
+# Two active photosystem matrices must share the scalar type and the emission-bin
+# axis; a disabled photosystem (NoLeafEmission) pairs with anything.
+@inline _check_photosystem_pair(::AbstractLeafEmission, ::AbstractLeafEmission) = nothing
+function _check_photosystem_pair(psii::LeafEmissionMatrix, psi::LeafEmissionMatrix)
+    eltype(psii) === eltype(psi) ||
+        throw(ArgumentError("PSII and PSI LeafEmissionMatrix models must share scalar type"))
+    axes(psii.front, 1) == axes(psi.front, 1) ||
+        throw(DimensionMismatch("PSII and PSI LeafEmissionMatrix models must share emission-bin axis"))
+    return nothing
 end
 
 """
@@ -192,11 +161,11 @@ to unity within `atol`, without clipping or rescaling.
 """
 function validate_leaf_emission(
     model::LeafEmissionMatrix{FT};
-    atol::Real = sqrt(eps(primal_float_type(FT))),
+    atol::Real = sqrt(eps(primal_type(FT))),
 ) where {FT<:Real}
-    P = primal_float_type(FT)
-    atol_p = primal_scalar(convert(FT, atol))
-    finite_scalar(atol) && zero(P) <= atol_p < one(P) ||
+    P = primal_type(FT)
+    atol_p = primal(convert(FT, atol))
+    all_finite(atol) && zero(P) <= atol_p < one(P) ||
         throw(ArgumentError("Invalid photon-budget tolerance"))
     nrow, ncol = size(model.front)
     fh = reshape(_host_linear(model.front), nrow, ncol)
@@ -205,18 +174,18 @@ function validate_leaf_emission(
     oh = _host_linear(model.out_of_window)
     for arr in (fh, bh, rh)
         for x in arr
-            finite_scalar(x) && zero(P) <= primal_scalar(x) <= one(P) ||
+            all_finite(x) && zero(P) <= primal(x) <= one(P) ||
                 throw(ArgumentError("Photon-fate probabilities must be finite and lie in [0, 1]"))
         end
     end
     for x in oh
-        finite_scalar(x) && zero(P) <= primal_scalar(x) <= one(P) ||
+        all_finite(x) && zero(P) <= primal(x) <= one(P) ||
             throw(ArgumentError("out_of_window probabilities must be finite and lie in [0, 1]"))
     end
     for c in 1:ncol
-        s = primal_scalar(oh[c])
+        s = primal(oh[c])
         for r in 1:nrow
-            s += primal_scalar(fh[r, c]) + primal_scalar(bh[r, c]) + primal_scalar(rh[r, c])
+            s += primal(fh[r, c]) + primal(bh[r, c]) + primal(rh[r, c])
         end
         abs(s - one(P)) <= atol_p ||
             throw(ArgumentError("Each internal-photon column must account for all escaped, reabsorbed, and out-of-window photons"))
@@ -227,8 +196,8 @@ end
 validate_leaf_emission(::NoLeafEmission; atol::Real = 0.0) = nothing
 
 function validate_leaf_emission(dual::DualLeafEmissionMatrix; atol::Real = 1e-6)
-    dual.psii isa LeafEmissionMatrix && validate_leaf_emission(dual.psii; atol)
-    dual.psi isa LeafEmissionMatrix && validate_leaf_emission(dual.psi; atol)
+    validate_leaf_emission(dual.psii; atol)
+    validate_leaf_emission(dual.psi; atol)
     return nothing
 end
 
@@ -339,6 +308,7 @@ function escape_leaf_emission!(
     internal::AbstractMatrix{FT};
     out_of_window::Union{Nothing,AbstractVector{FT}} = nothing,
 ) where {FT<:Real}
+    same_precision(front)
     _accumulate_leaf_escape!(front, back, reabsorbed, out_of_window, model, internal, false)
     return out_of_window === nothing ?
            (; front, back, reabsorbed) :
@@ -353,6 +323,7 @@ function escape_leaf_emission!(
     internal = nothing;
     out_of_window::Union{Nothing,AbstractVector{FT}} = nothing,
 ) where {FT<:Real}
+    same_precision(front)
     axes(front) == axes(back) == axes(reabsorbed) ||
         throw(DimensionMismatch("Output spectra must share axes"))
     if out_of_window !== nothing
@@ -385,55 +356,48 @@ function escape_dual_leaf_emission!(
     internal_psi = nothing;
     out_of_window::Union{Nothing,AbstractVector{FT}} = nothing,
 ) where {FT<:Real}
-    if dual.psii isa LeafEmissionMatrix
-        internal_psii isa AbstractMatrix{FT} ||
-            throw(ArgumentError("internal_psii matrix required for active PSII LeafEmissionMatrix"))
-        _accumulate_leaf_escape!(
-            front,
-            back,
-            reabsorbed,
-            out_of_window,
-            dual.psii,
-            internal_psii,
-            false,
-        )
-        if dual.psi isa LeafEmissionMatrix
-            internal_psi isa AbstractMatrix{FT} ||
-                throw(ArgumentError("internal_psi matrix required for active PSI LeafEmissionMatrix"))
-            _accumulate_leaf_escape!(
-                front,
-                back,
-                reabsorbed,
-                out_of_window,
-                dual.psi,
-                internal_psi,
-                true,
-            )
-        end
-    elseif dual.psi isa LeafEmissionMatrix
-        internal_psi isa AbstractMatrix{FT} ||
-            throw(ArgumentError("internal_psi matrix required for active PSI LeafEmissionMatrix"))
-        _accumulate_leaf_escape!(
-            front,
-            back,
-            reabsorbed,
-            out_of_window,
-            dual.psi,
-            internal_psi,
-            false,
-        )
-    else
-        escape_leaf_emission!(
-            front,
-            back,
-            reabsorbed,
-            NoLeafEmission();
-            out_of_window,
-        )
-    end
+    same_precision(front)
+    outputs = (front, back, reabsorbed, out_of_window)
+    _escape_photosystems!(outputs, dual.psii, dual.psi, internal_psii, internal_psi)
     return out_of_window === nothing ?
            (; front, back, reabsorbed) :
            (; front, back, reabsorbed, out_of_window)
+end
+
+# Escape of both photosystems into shared outputs: the first active photosystem
+# overwrites, the second accumulates; with none active the outputs are zero.
+const _NEED_PSII = "internal_psii matrix required for active PSII LeafEmissionMatrix"
+const _NEED_PSI = "internal_psi matrix required for active PSI LeafEmissionMatrix"
+
+@inline _required_internal(::Type{FT}, internal::AbstractMatrix{FT}, _) where {FT} = internal
+@inline _required_internal(::Type, _, message) = throw(ArgumentError(message))
+
+@inline function _escape_one!(outputs, model, internal, accumulate)
+    front, back, reabsorbed, out_of_window = outputs
+    _accumulate_leaf_escape!(front, back, reabsorbed, out_of_window, model, internal, accumulate)
+    return nothing
+end
+
+function _escape_photosystems!(outputs, psii::LeafEmissionMatrix, psi::LeafEmissionMatrix, i2, i1)
+    FT = eltype(first(outputs))
+    _escape_one!(outputs, psii, _required_internal(FT, i2, _NEED_PSII), false)
+    _escape_one!(outputs, psi, _required_internal(FT, i1, _NEED_PSI), true)
+    return nothing
+end
+function _escape_photosystems!(outputs, psii::LeafEmissionMatrix, ::AbstractLeafEmission, i2, _)
+    FT = eltype(first(outputs))
+    _escape_one!(outputs, psii, _required_internal(FT, i2, _NEED_PSII), false)
+    return nothing
+end
+function _escape_photosystems!(outputs, ::AbstractLeafEmission, psi::LeafEmissionMatrix, _, i1)
+    FT = eltype(first(outputs))
+    _escape_one!(outputs, psi, _required_internal(FT, i1, _NEED_PSI), false)
+    return nothing
+end
+function _escape_photosystems!(outputs, ::AbstractLeafEmission, ::AbstractLeafEmission, _, _)
+    front, back, reabsorbed, out_of_window = outputs
+    escape_leaf_emission!(front, back, reabsorbed, NoLeafEmission(); out_of_window)
+    return nothing
 end
 
 function _prepare_conditional_window_columns(
@@ -480,29 +444,7 @@ function _prepare_conditional_window_columns(
     else
         first_pos_idx = findfirst(>(zero(FT)), spectrum.relative_photon_mass)
         first_pos_nm = spectrum.wavelength_nm[first_pos_idx]
-        f_vec = if out_of_window_fraction === nothing
-            zeros(FT, ne)
-        elseif out_of_window_fraction isa Real
-            f_s = convert(FT, out_of_window_fraction)
-            isfinite(f_s) && zero(FT) <= f_s < one(FT) ||
-                throw(ArgumentError("out_of_window_fraction must be finite and lie in [0, 1)"))
-            if !iszero(f_s) &&
-               support isa StrictStokes &&
-               any(>=(first_pos_nm), excitation_nm)
-                throw(ArgumentError("Nonzero scalar out_of_window_fraction is inconsistent with StrictStokes excitation inside the emission spectrum; pass full TabulatedPhotonSpectrum with window_indices or per-excitation vector"))
-            end
-            fill(f_s, ne)
-        elseif out_of_window_fraction isa AbstractVector{FT}
-            length(out_of_window_fraction) == ne ||
-                throw(DimensionMismatch("out_of_window_fraction vector must match length(excitation_nm)"))
-            for x in out_of_window_fraction
-                isfinite(x) && zero(FT) <= x < one(FT) ||
-                    throw(ArgumentError("out_of_window_fraction entries must be finite and lie in [0, 1)"))
-            end
-            collect(out_of_window_fraction)
-        else
-            throw(ArgumentError("Unsupported out_of_window_fraction specification"))
-        end
+        f_vec = _tail_fractions(out_of_window_fraction, FT, ne, support, excitation_nm, first_pos_nm)
         for c in 1:ne
             lam_ex = excitation_nm[e0 + c - 1]
             full_prob = emission_probabilities(spectrum, support, lam_ex)
@@ -514,6 +456,38 @@ function _prepare_conditional_window_columns(
         end
     end
     return prob_in, oow
+end
+
+# Excitation-dependent out-of-window fraction when window_indices covers the whole
+# table: none given (zero), one fraction for every excitation, or one per excitation.
+_tail_fractions(::Nothing, ::Type{FT}, ne, _, _, _) where {FT} = zeros(FT, ne)
+function _tail_fractions(f::Real, ::Type{FT}, ne, support, excitation_nm, first_pos_nm) where {FT}
+    f_s = convert(FT, f)
+    isfinite(f_s) && zero(FT) <= f_s < one(FT) ||
+        throw(ArgumentError("out_of_window_fraction must be finite and lie in [0, 1)"))
+    _check_scalar_tail(support, f_s, excitation_nm, first_pos_nm)
+    return fill(f_s, ne)
+end
+function _tail_fractions(f::AbstractVector{FT}, ::Type{FT}, ne, _, _, _) where {FT}
+    length(f) == ne ||
+        throw(DimensionMismatch("out_of_window_fraction vector must match length(excitation_nm)"))
+    for x in f
+        isfinite(x) && zero(FT) <= x < one(FT) ||
+            throw(ArgumentError("out_of_window_fraction entries must be finite and lie in [0, 1)"))
+    end
+    return collect(f)
+end
+_tail_fractions(_, ::Type, _, _, _, _) =
+    throw(ArgumentError("Unsupported out_of_window_fraction specification"))
+
+# A nonzero scalar tail fraction is only consistent with strict Stokes emission when
+# every excitation lies below the emission spectrum.
+_check_scalar_tail(::AbstractEmissionSupport, _, _, _) = nothing
+function _check_scalar_tail(::StrictStokes, f_s, excitation_nm, first_pos_nm)
+    !iszero(f_s) &&
+        any(>=(first_pos_nm), excitation_nm) &&
+        throw(ArgumentError("Nonzero scalar out_of_window_fraction is inconsistent with StrictStokes excitation inside the emission spectrum; pass full TabulatedPhotonSpectrum with window_indices or per-excitation vector"))
+    return nothing
 end
 
 """
@@ -628,28 +602,46 @@ function build_leaf_emission_matrices(
     return model
 end
 
-@kernel function _row_scale_kernel!(output, input, scale, r0::Int, c0::Int, s0::Int)
+# ============================================================================
+# Row-wise spectral conversions: output[i, j] = f(input[i, j], row[i])
+# ============================================================================
+#
+# A plain loop on the KernelAbstractions CPU backend (no kernel launch for these
+# memory-bound maps), one kernel elsewhere. `f` is `*` (bins from densities), `/`
+# (densities from bins) or a `_PerWavelengthEnergy` (energy from photons).
+
+struct _PerWavelengthEnergy{FT}
+    coefficient::FT
+end
+@inline (e::_PerWavelengthEnergy)(photons, wavelength_nm) =
+    photons * (e.coefficient / wavelength_nm)
+
+@kernel function _row_map_kernel!(f, output, input, row, r0::Int, c0::Int, s0::Int)
     i, j = @index(Global, NTuple)
-    @inbounds output[r0 + i - 1, c0 + j - 1] = input[r0 + i - 1, c0 + j - 1] * scale[s0 + i - 1]
+    @inbounds output[r0 + i - 1, c0 + j - 1] = f(input[r0 + i - 1, c0 + j - 1], row[s0 + i - 1])
 end
 
-@kernel function _row_inv_scale_kernel!(output, input, scale, r0::Int, c0::Int, s0::Int)
-    i, j = @index(Global, NTuple)
-    @inbounds output[r0 + i - 1, c0 + j - 1] = input[r0 + i - 1, c0 + j - 1] / scale[s0 + i - 1]
+function _map_rows!(::KernelAbstractions.CPU, f, output, input, row)
+    @inbounds for j in axes(output, 2), i in axes(output, 1)
+        output[i, j] = f(input[i, j], row[i])
+    end
+    return output
 end
 
-@kernel function _photon_energy_kernel!(
-    output,
-    photons,
-    wavelengths_nm,
-    coeff,
-    r0::Int,
-    c0::Int,
-    w0::Int,
-)
-    i, j = @index(Global, NTuple)
-    @inbounds output[r0 + i - 1, c0 + j - 1] =
-        photons[r0 + i - 1, c0 + j - 1] * (coeff / wavelengths_nm[w0 + i - 1])
+function _map_rows!(backend, f, output, input, row)
+    k! = _row_map_kernel!(backend)
+    k!(
+        f,
+        output,
+        input,
+        row,
+        firstindex(output, 1),
+        firstindex(output, 2),
+        firstindex(row, 1);
+        ndrange = size(output),
+    )
+    KernelAbstractions.synchronize(backend)
+    return output
 end
 
 function _check_spectral_row_axes(output, input, measure)
@@ -669,27 +661,10 @@ function photon_bins!(
     density::AbstractMatrix{FT},
     widths_nm::AbstractVector{FT},
 ) where {FT<:Real}
-    require_continuous_scalar(FT, photon_bins!, (output, density, widths_nm))
+    same_precision(output)
     _check_spectral_row_axes(output, density, widths_nm)
     isempty(output) && return output
-    backend = KernelAbstractions.get_backend(output)
-    if backend isa KernelAbstractions.CPU
-        @inbounds for j in axes(output, 2), i in axes(output, 1)
-            output[i, j] = density[i, j] * widths_nm[i]
-        end
-    else
-        k! = _row_scale_kernel!(backend)
-        k!(
-            output,
-            density,
-            widths_nm,
-            firstindex(output, 1),
-            firstindex(output, 2),
-            firstindex(widths_nm, 1);
-            ndrange = size(output),
-        )
-        KernelAbstractions.synchronize(backend)
-    end
+    _map_rows!(KernelAbstractions.get_backend(output), *, output, density, widths_nm)
     return output
 end
 
@@ -704,27 +679,10 @@ function photon_density!(
     bins::AbstractMatrix{FT},
     widths_nm::AbstractVector{FT},
 ) where {FT<:Real}
-    require_continuous_scalar(FT, photon_density!, (output, bins, widths_nm))
+    same_precision(output)
     _check_spectral_row_axes(output, bins, widths_nm)
     isempty(output) && return output
-    backend = KernelAbstractions.get_backend(output)
-    if backend isa KernelAbstractions.CPU
-        @inbounds for j in axes(output, 2), i in axes(output, 1)
-            output[i, j] = bins[i, j] / widths_nm[i]
-        end
-    else
-        k! = _row_inv_scale_kernel!(backend)
-        k!(
-            output,
-            bins,
-            widths_nm,
-            firstindex(output, 1),
-            firstindex(output, 2),
-            firstindex(widths_nm, 1);
-            ndrange = size(output),
-        )
-        KernelAbstractions.synchronize(backend)
-    end
+    _map_rows!(KernelAbstractions.get_backend(output), /, output, bins, widths_nm)
     return output
 end
 
@@ -741,27 +699,9 @@ function photon_energy!(
     wavelengths_nm::AbstractVector{FT},
     coefficient::FT,
 ) where {FT<:Real}
-    require_continuous_scalar(FT, photon_energy!, (output, photons, wavelengths_nm, coefficient))
+    same_precision(output)
     _check_spectral_row_axes(output, photons, wavelengths_nm)
     isempty(output) && return output
-    backend = KernelAbstractions.get_backend(output)
-    if backend isa KernelAbstractions.CPU
-        @inbounds for j in axes(output, 2), i in axes(output, 1)
-            output[i, j] = photons[i, j] * (coefficient / wavelengths_nm[i])
-        end
-    else
-        k! = _photon_energy_kernel!(backend)
-        k!(
-            output,
-            photons,
-            wavelengths_nm,
-            coefficient,
-            firstindex(output, 1),
-            firstindex(output, 2),
-            firstindex(wavelengths_nm, 1);
-            ndrange = size(output),
-        )
-        KernelAbstractions.synchronize(backend)
-    end
+    _map_rows!(KernelAbstractions.get_backend(output), _PerWavelengthEnergy(coefficient), output, photons, wavelengths_nm)
     return output
 end

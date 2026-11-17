@@ -45,15 +45,13 @@ end
     mkdual(v, p) = ForwardDiff.Dual{Nothing}(v, p)
     discrete_dual = ForwardDiff.Dual{Nothing}(1, 1)
 
-    # Functions under the precision policy (two_stream.jl, emission_transport.jl)
-    # reject non-floating-point scalars with an ArgumentError; unit_sin_from_cos
-    # (scalars.jl, not yet converted) still with a MethodError.
+    # Non-floating-point scalars are rejected by the precision policy (ArgumentError).
     for bad in (true, 1, 1 // 2, pi, discrete_dual)
         @test_throws ArgumentError CanopyRates(bad, bad, bad, bad, bad)
         @test_throws ArgumentError LayerOperator(bad, bad, bad, bad, bad)
         @test_throws ArgumentError UniformEmission(bad, bad)
         @test_throws ArgumentError diffuse_response(bad, bad, bad)
-        @test_throws MethodError CanopyRadiation.unit_sin_from_cos(bad)
+        @test_throws ArgumentError CanopyRadiation.unit_sin_from_cos(bad)
     end
 
     # Mixed Float32 + Float64 rejected via ArgumentError (precision policy)
@@ -458,7 +456,7 @@ end
     # 4. End-to-end column + emitting cavity + plate + atmospheric coupling AD
     function column_cavity_pipeline(x)
         al, bk, lai1, lai2, soil, qu, qd, r_atm = x
-        P = CanopyRadiation.primal_float_type(eltype(x))
+        P = CanopyRadiation.primal_type(eltype(x))
         rates = CanopyRates(al, bk, P(0.04), P(0.05), P(0.65))
         op1 = layer_operator(AnalyticTwoStream(), rates, lai1)
         op2 = layer_operator(AnalyticTwoStream(), rates, lai2)
@@ -607,7 +605,7 @@ end
         [0.4, 0.2, 0.1, 0.3],
     )
     @test isapprox(g_hbin, [0.3, 0.5, 0.2, 0.4]; rtol = 1e-14)
-    @test_throws MethodError hemispheric_bin(plus_f64, minus_f64, Float32[0.4, 0.2], Float32[0.1, 0.3], 1)
+    @test_throws ArgumentError hemispheric_bin(plus_f64, minus_f64, Float32[0.4, 0.2], Float32[0.1, 0.3], 1)
 
     # Mixed primal LeafEmissionMatrix{Float64} & DualLeafEmissionMatrix + AD LayerHemisphericSource{Dual}
     primal_m2 = LeafEmissionMatrix(

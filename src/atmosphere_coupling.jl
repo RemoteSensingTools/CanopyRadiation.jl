@@ -18,7 +18,7 @@ struct AngularEmissionBoundary{
     R<:AbstractMatrix{FT},
     S<:AbstractMatrix{FT},
     V<:AbstractVector{FT},
-}
+} <: RadiationRecord
     reflection::R
     emission::S
     mu::V
@@ -32,11 +32,7 @@ struct AngularEmissionBoundary{
         weights::V,
         fourier_order::Integer,
     ) where {FT<:Real,R<:AbstractMatrix{FT},S<:AbstractMatrix{FT},V<:AbstractVector{FT}}
-        require_continuous_scalar(
-            FT,
-            AngularEmissionBoundary,
-            (reflection, emission, mu, weights, fourier_order),
-        )
+        same_precision(mu)
         n = length(mu)
         n > 0 &&
             axes(mu) == axes(weights) &&
@@ -49,32 +45,6 @@ struct AngularEmissionBoundary{
 end
 
 Base.eltype(::Type{<:AngularEmissionBoundary{FT}}) where {FT} = FT
-Base.eltype(b::AngularEmissionBoundary) = eltype(b.mu)
-
-Base.:(==)(a::AngularEmissionBoundary, b::AngularEmissionBoundary) =
-    a.fourier_order == b.fourier_order &&
-    axes(a.mu) == axes(b.mu) &&
-    axes(a.emission) == axes(b.emission) &&
-    a.reflection == b.reflection &&
-    a.emission == b.emission &&
-    a.mu == b.mu &&
-    a.weights == b.weights
-
-Base.isequal(a::AngularEmissionBoundary, b::AngularEmissionBoundary) =
-    a.fourier_order == b.fourier_order &&
-    _isequal_array(a.reflection, b.reflection) &&
-    _isequal_array(a.emission, b.emission) &&
-    _isequal_array(a.mu, b.mu) &&
-    _isequal_array(a.weights, b.weights)
-
-function Base.hash(b::AngularEmissionBoundary, h::UInt)
-    h = hash(:AngularEmissionBoundary, h)
-    h = hash(b.fourier_order, h)
-    h = _hash_array(b.reflection, h)
-    h = _hash_array(b.emission, h)
-    h = _hash_array(b.mu, h)
-    return _hash_array(b.weights, h)
-end
 
 """
     AbstractAtmosphericTransfer
@@ -83,7 +53,7 @@ Supertype for source-free atmospheric operators above an
 [`AngularEmissionBoundary`](@ref) ([`VacuumAtmosphere`](@ref) and
 [`AngularAtmosphericTransfer`](@ref)).
 """
-abstract type AbstractAtmosphericTransfer end
+abstract type AbstractAtmosphericTransfer <: RadiationRecord end
 
 """
     VacuumAtmosphere()
@@ -98,8 +68,6 @@ VacuumAtmosphere()
 ```
 """
 struct VacuumAtmosphere <: AbstractAtmosphericTransfer end
-
-broadcastable(a::VacuumAtmosphere) = Ref(a)
 
 """
     AngularAtmosphericTransfer(return_down, transmit_up, mu, weights, fourier_order)
@@ -134,11 +102,7 @@ struct AngularAtmosphericTransfer{
         weights::V,
         fourier_order::Integer,
     ) where {FT<:Real,R<:AbstractMatrix{FT},T<:AbstractMatrix{FT},V<:AbstractVector{FT}}
-        require_continuous_scalar(
-            FT,
-            AngularAtmosphericTransfer,
-            (return_down, transmit_up, mu, weights, fourier_order),
-        )
+        same_precision(mu)
         n = length(mu)
         n > 0 &&
             axes(mu) == axes(weights) &&
@@ -150,31 +114,11 @@ struct AngularAtmosphericTransfer{
 end
 
 Base.eltype(::Type{<:AngularAtmosphericTransfer{FT}}) where {FT} = FT
-Base.eltype(a::AngularAtmosphericTransfer) = eltype(a.mu)
 
-Base.:(==)(a::AngularAtmosphericTransfer, b::AngularAtmosphericTransfer) =
-    a.fourier_order == b.fourier_order &&
-    axes(a.mu) == axes(b.mu) &&
-    a.return_down == b.return_down &&
-    a.transmit_up == b.transmit_up &&
-    a.mu == b.mu &&
-    a.weights == b.weights
-
-Base.isequal(a::AngularAtmosphericTransfer, b::AngularAtmosphericTransfer) =
-    a.fourier_order == b.fourier_order &&
-    _isequal_array(a.return_down, b.return_down) &&
-    _isequal_array(a.transmit_up, b.transmit_up) &&
-    _isequal_array(a.mu, b.mu) &&
-    _isequal_array(a.weights, b.weights)
-
-function Base.hash(a::AngularAtmosphericTransfer, h::UInt)
-    h = hash(:AngularAtmosphericTransfer, h)
-    h = hash(a.fourier_order, h)
-    h = _hash_array(a.return_down, h)
-    h = _hash_array(a.transmit_up, h)
-    h = _hash_array(a.mu, h)
-    return _hash_array(a.weights, h)
-end
+# Operator of the promoted scalar type: as it is, or converted elementwise (plain
+# operators coupled with dual ones).
+@inline _with_eltype(::Type{FT}, A::AbstractArray{FT}) where {FT} = A
+@inline _with_eltype(::Type{FT}, A::AbstractArray) where {FT} = convert.(FT, A)
 
 function _check_shared_ordinate_grid(
     canopy::AngularEmissionBoundary,
@@ -182,8 +126,8 @@ function _check_shared_ordinate_grid(
 )
     canopy.fourier_order == atmosphere.fourier_order &&
         axes(canopy.mu) == axes(atmosphere.mu) &&
-        primal_scalar.(canopy.mu) == primal_scalar.(atmosphere.mu) &&
-        primal_scalar.(canopy.weights) == primal_scalar.(atmosphere.weights) ||
+        primal.(canopy.mu) == primal.(atmosphere.mu) &&
+        primal.(canopy.weights) == primal.(atmosphere.weights) ||
         throw(ArgumentError("Coupling requires identical ordinate grids, weights, and Fourier order"))
     return nothing
 end
@@ -208,17 +152,13 @@ julia> isapprox(c.canopy_up[1, 1], 1.0 / (1.0 - 0.02); atol = 1e-15)
 true
 ```
 """
-function couple_emission(
-    canopy::AngularEmissionBoundary{FT1},
-    atmosphere::AngularAtmosphericTransfer{FT2},
-) where {FT1<:Real,FT2<:Real}
-    FT = compatible_scalar(FT1, FT2)
-    FT === Union{} && throw(MethodError(couple_emission, (canopy, atmosphere)))
+function couple_emission(canopy::AngularEmissionBoundary, atmosphere::AngularAtmosphericTransfer)
+    FT = common_scalar_type(canopy, atmosphere)
     _check_shared_ordinate_grid(canopy, atmosphere)
-    rc = FT === FT1 ? canopy.reflection : convert.(FT, canopy.reflection)
-    em = FT === FT1 ? canopy.emission : convert.(FT, canopy.emission)
-    ra = FT === FT2 ? atmosphere.return_down : convert.(FT, atmosphere.return_down)
-    ta = FT === FT2 ? atmosphere.transmit_up : convert.(FT, atmosphere.transmit_up)
+    rc = _with_eltype(FT, canopy.reflection)
+    em = _with_eltype(FT, canopy.emission)
+    ra = _with_eltype(FT, atmosphere.return_down)
+    ta = _with_eltype(FT, atmosphere.transmit_up)
     factor = lu(I - rc * ra)
     canopy_up = factor \ em
     canopy_down = ra * canopy_up
@@ -248,15 +188,11 @@ julia> one_way_emission(b, VacuumAtmosphere())
  1.0
 ```
 """
-function one_way_emission(
-    canopy::AngularEmissionBoundary{FT1},
-    atmosphere::AngularAtmosphericTransfer{FT2},
-) where {FT1<:Real,FT2<:Real}
-    FT = compatible_scalar(FT1, FT2)
-    FT === Union{} && throw(MethodError(one_way_emission, (canopy, atmosphere)))
+function one_way_emission(canopy::AngularEmissionBoundary, atmosphere::AngularAtmosphericTransfer)
+    FT = common_scalar_type(canopy, atmosphere)
     _check_shared_ordinate_grid(canopy, atmosphere)
-    em = FT === FT1 ? canopy.emission : convert.(FT, canopy.emission)
-    ta = FT === FT2 ? atmosphere.transmit_up : convert.(FT, atmosphere.transmit_up)
+    em = _with_eltype(FT, canopy.emission)
+    ta = _with_eltype(FT, atmosphere.transmit_up)
     return ta * em
 end
 

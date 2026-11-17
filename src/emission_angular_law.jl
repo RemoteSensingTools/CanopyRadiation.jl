@@ -4,7 +4,7 @@
 Supertype for leaf-face angular emission distributions
 ([`LambertianFaces`](@ref) and [`MixedLambertianFaces`](@ref)).
 """
-abstract type AbstractEmissionAngularLaw end
+abstract type AbstractEmissionAngularLaw <: RadiationRecord end
 
 """
     LambertianFaces()
@@ -18,8 +18,6 @@ LambertianFaces()
 ```
 """
 struct LambertianFaces <: AbstractEmissionAngularLaw end
-
-broadcastable(l::LambertianFaces) = Ref(l)
 
 """
     MixedLambertianFaces(lambertian_fraction)
@@ -48,28 +46,23 @@ true
 struct MixedLambertianFaces{FT<:Real} <: AbstractEmissionAngularLaw
     lambertian_fraction::FT
 
-    function MixedLambertianFaces(lambertian_fraction::FT) where {FT<:Real}
-        require_continuous_scalar(FT, MixedLambertianFaces, (lambertian_fraction,))
-        P = primal_float_type(FT)
-        finite_scalar(lambertian_fraction) &&
-            zero(P) <= primal_scalar(lambertian_fraction) <= one(P) ||
-            throw(ArgumentError("lambertian_fraction must be finite and lie in [0, 1]"))
-        return new{FT}(lambertian_fraction)
+    function MixedLambertianFaces(lambertian_fraction::Real)
+        same_precision(lambertian_fraction)
+        _checked(
+            lambertian_fraction,
+            _unit_interval,
+            "lambertian_fraction must be finite and lie in [0, 1]",
+        )
+        return new{typeof(lambertian_fraction)}(lambertian_fraction)
     end
 end
 
-Base.eltype(::Type{MixedLambertianFaces{FT}}) where {FT} = FT
-Base.eltype(l::MixedLambertianFaces) = typeof(l.lambertian_fraction)
-broadcastable(l::MixedLambertianFaces) = Ref(l)
-Base.:(==)(a::MixedLambertianFaces, b::MixedLambertianFaces) =
-    a.lambertian_fraction == b.lambertian_fraction
-Base.isequal(a::MixedLambertianFaces, b::MixedLambertianFaces) =
-    isequal(a.lambertian_fraction, b.lambertian_fraction)
-Base.hash(l::MixedLambertianFaces, h::UInt) =
-    _hash_scalar(l.lambertian_fraction, hash(:MixedLambertianFaces, h))
+Base.eltype(::Type{<:MixedLambertianFaces{FT}}) where {FT} = FT
 
-@inline _law_scalar_probe(::LambertianFaces, fallback) = fallback
-@inline _law_scalar_probe(law::MixedLambertianFaces, _) = law.lambertian_fraction
+# Scalars of an emission law that take part in the precision of a kernel (none for a
+# law without parameters).
+@inline _precision_operands(::AbstractEmissionAngularLaw) = ()
+@inline _precision_operands(law::MixedLambertianFaces) = (law,)
 
 """
     leaf_hemispheric_emission(law::AbstractEmissionAngularLaw, leaf_cosine, front, back)
@@ -89,7 +82,7 @@ julia> leaf_hemispheric_emission(LambertianFaces(), 0.5, 0.75, 0.25)
     front::Real,
     back::Real,
 )
-    FT = promote_compatible_scalar(leaf_hemispheric_emission, leaf_cosine, front, back)
+    FT = common_scalar_type(leaf_cosine, front, back)
     mu = convert(FT, leaf_cosine)
     fr = convert(FT, front)
     bk = convert(FT, back)
@@ -104,13 +97,7 @@ end
     front::Real,
     back::Real,
 )
-    FT = promote_compatible_scalar(
-        leaf_hemispheric_emission,
-        law.lambertian_fraction,
-        leaf_cosine,
-        front,
-        back,
-    )
+    FT = common_scalar_type(law.lambertian_fraction, leaf_cosine, front, back)
     lam = convert(FT, law.lambertian_fraction)
     mu = convert(FT, leaf_cosine)
     fr = convert(FT, front)
@@ -147,8 +134,7 @@ true
     back::Real;
     mirrored_azimuth::Bool = false,
 )
-    FT = promote_compatible_scalar(
-        leaf_angular_emission,
+    FT = common_scalar_type(
         leaf_cosine,
         leaf_azimuth,
         ray_cosine,
@@ -186,8 +172,7 @@ end
     back::Real;
     mirrored_azimuth::Bool = false,
 )
-    FT = promote_compatible_scalar(
-        leaf_angular_emission,
+    FT = common_scalar_type(
         law.lambertian_fraction,
         leaf_cosine,
         leaf_azimuth,
@@ -230,13 +215,12 @@ respecting generic vector axes on `leaf_mu`, `weights`, `front`, and `back`.
     depth_step::Integer,
     depth_weight::Real,
 )
-    FT = promote_compatible_scalar(
-        depth_hemispheric_source,
-        _law_scalar_probe(law, zero(eltype(leaf_mu))),
-        zero(eltype(leaf_mu)),
-        zero(eltype(weights)),
-        zero(eltype(front)),
-        zero(eltype(back)),
+    FT = common_scalar_type(
+        _precision_operands(law)...,
+        leaf_mu,
+        weights,
+        front,
+        back,
         depth_weight,
     )
     n = length(leaf_mu)
@@ -282,15 +266,13 @@ function assemble_hemispheric_emission!(
     front::AbstractVector,
     back::AbstractVector,
 ) where {FT<:Real}
-    require_continuous_scalar(FT, assemble_hemispheric_emission!, (up, down))
+    same_precision(up)
     axes(up) == axes(down) == axes(g.depths) ||
         throw(DimensionMismatch("Hemispheric source vectors must share axes with g.depths"))
     axes(weights) == axes(front) == axes(back) && length(weights) == length(g) ||
         throw(DimensionMismatch("Face emission and weights must share axes and match length(g)"))
-    P = primal_float_type(FT)
     for w in _host_linear(g.depth_weights)
-        finite_scalar(w) && primal_scalar(w) > zero(P) ||
-            throw(ArgumentError("Depth quadrature weights must be finite and positive"))
+        _checked(w, _positive, "Depth quadrature weights must be finite and positive")
     end
     @inbounds for (step, d_idx) in enumerate(eachindex(g.depths))
         e = depth_hemispheric_source(
@@ -328,14 +310,13 @@ depth ordinal `depth_step` into outgoing direction `(ray_mu, ray_phi)`.
     ray_mu::Real,
     ray_phi::Real,
 )
-    FT = promote_compatible_scalar(
-        depth_angular_source,
-        _law_scalar_probe(law, zero(eltype(leaf_mu))),
-        zero(eltype(leaf_mu)),
-        zero(eltype(leaf_phi)),
-        zero(eltype(weights)),
-        zero(eltype(front)),
-        zero(eltype(back)),
+    FT = common_scalar_type(
+        _precision_operands(law)...,
+        leaf_mu,
+        leaf_phi,
+        weights,
+        front,
+        back,
         depth_weight,
         ray_mu,
         ray_phi,
@@ -388,16 +369,14 @@ function assemble_emission!(
     ray_mu::AbstractVector,
     ray_phi::AbstractVector,
 ) where {FT<:Real}
-    require_continuous_scalar(FT, assemble_emission!, (source,))
+    same_precision(source)
     axes(weights) == axes(front) == axes(back) && length(weights) == length(g) ||
         throw(DimensionMismatch("Face emission and population weights must share axes and match length(g)"))
     axes(ray_mu) == axes(ray_phi) &&
         axes(source) == (axes(ray_mu, 1), axes(g.depths, 1)) ||
         throw(DimensionMismatch("Source storage must have (axes(ray_mu, 1), axes(g.depths, 1)) axes"))
-    P = primal_float_type(FT)
     for w in _host_linear(g.depth_weights)
-        finite_scalar(w) && primal_scalar(w) > zero(P) ||
-            throw(ArgumentError("Depth quadrature weights must be finite and positive"))
+        _checked(w, _positive, "Depth quadrature weights must be finite and positive")
     end
     @inbounds for (step, d_idx) in enumerate(eachindex(g.depths)), r_idx in eachindex(ray_mu)
         source[r_idx, d_idx] = convert(

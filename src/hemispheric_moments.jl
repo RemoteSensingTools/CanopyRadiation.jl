@@ -12,12 +12,7 @@ moments at `(depth_idx, channel_idx)`, respecting generic array axes.
     depth_idx::Integer,
     channel_idx::Integer,
 )
-    FT = promote_compatible_scalar(
-        hemispheric_moment,
-        _law_scalar_probe(law, zero(eltype(mu))),
-        zero(eltype(mu)),
-        zero(eltype(weighted)),
-    )
+    FT = common_scalar_type(_precision_operands(law)..., mu, weighted)
     @boundscheck begin
         axes(weighted, 1) == axes(mu, 1) ||
             throw(DimensionMismatch("weighted orientation axis must match axes(mu, 1)"))
@@ -47,13 +42,7 @@ hemisphere moments `plus[depth_idx, :]` and `minus[depth_idx, :]` into
     back::AbstractVector,
     depth_idx::Integer,
 )
-    FT = promote_compatible_scalar(
-        hemispheric_bin,
-        zero(eltype(plus)),
-        zero(eltype(minus)),
-        zero(eltype(front)),
-        zero(eltype(back)),
-    )
+    FT = common_scalar_type(plus, minus, front, back)
     @boundscheck begin
         axes(plus) == axes(minus) &&
             axes(front, 1) == axes(back, 1) == axes(plus, 2) ||
@@ -102,6 +91,38 @@ end
     end
 end
 
+const _OUTPUT_TYPE = "output element type must equal the promoted input scalar type"
+
+# The CPU backend evaluates the scalar functions (hemispheric_moment, hemispheric_bin)
+# in a loop; other backends launch one kernel. Same expressions, same order.
+function _source_moments!(::KernelAbstractions.CPU, plus, minus, law, mu, weighted)
+    FT = eltype(plus)
+    @inbounds for c in axes(weighted, 3), d in axes(weighted, 2)
+        h = hemispheric_moment(law, mu, weighted, d, c)
+        plus[d, c] = convert(FT, h.plus)
+        minus[d, c] = convert(FT, h.minus)
+    end
+    return nothing
+end
+
+function _source_moments!(backend, plus, minus, law, mu, weighted)
+    k! = _hemispheric_moments_kernel!(backend)
+    k!(
+        plus,
+        minus,
+        law,
+        mu,
+        weighted,
+        firstindex(mu, 1),
+        length(mu),
+        firstindex(plus, 1),
+        firstindex(plus, 2);
+        ndrange = size(plus),
+    )
+    KernelAbstractions.synchronize(backend)
+    return nothing
+end
+
 """
     hemispheric_source_moments!(plus, minus, law::AbstractEmissionAngularLaw, mu, weighted)
 
@@ -116,53 +137,20 @@ function hemispheric_source_moments!(
     mu::AbstractVector,
     weighted::AbstractArray{<:Real,3},
 ) where {FT<:Real}
-    require_continuous_scalar(FT, hemispheric_source_moments!, (plus, minus, law, mu, weighted))
-    FT_req = promote_compatible_scalar(
-        hemispheric_source_moments!,
-        zero(FT),
-        _law_scalar_probe(law, zero(FT)),
-        zero(eltype(mu)),
-        zero(eltype(weighted)),
-    )
-    FT_req === FT ||
-        throw(MethodError(hemispheric_source_moments!, (plus, minus, law, mu, weighted)))
+    FT_req = common_scalar_type(plus, _precision_operands(law)..., mu, weighted)
+    FT_req === FT || throw(ArgumentError(_OUTPUT_TYPE))
     axes(weighted, 1) == axes(mu, 1) &&
         axes(plus) == axes(minus) == (axes(weighted, 2), axes(weighted, 3)) ||
         throw(DimensionMismatch("Hemisphere moment axes must align with weighted[orientation, depth, channel]"))
     _disjoint_hemispheric_buffers((plus, minus), (mu, weighted))
-    P = primal_float_type(FT)
     for x in _host_linear(mu)
-        finite_scalar(x) && -one(P) <= primal_scalar(x) <= one(P) ||
-            throw(ArgumentError("Leaf normal cosines mu must be finite and lie in [-1, 1]"))
+        _checked(x, _cosine, "Leaf normal cosines mu must be finite and lie in [-1, 1]")
     end
     for x in _host_linear(weighted)
-        finite_scalar(x) && primal_scalar(x) >= zero(P) ||
-            throw(ArgumentError("Weighted internal source must be finite and nonnegative"))
+        _checked(x, _nonnegative, "Weighted internal source must be finite and nonnegative")
     end
     isempty(plus) && return plus, minus
-    backend = KernelAbstractions.get_backend(plus)
-    if backend isa KernelAbstractions.CPU
-        @inbounds for c in axes(weighted, 3), d in axes(weighted, 2)
-            h = hemispheric_moment(law, mu, weighted, d, c)
-            plus[d, c] = convert(FT, h.plus)
-            minus[d, c] = convert(FT, h.minus)
-        end
-    else
-        k! = _hemispheric_moments_kernel!(backend)
-        k!(
-            plus,
-            minus,
-            law,
-            mu,
-            weighted,
-            firstindex(mu, 1),
-            length(mu),
-            firstindex(plus, 1),
-            firstindex(plus, 2);
-            ndrange = size(plus),
-        )
-        KernelAbstractions.synchronize(backend)
-    end
+    _source_moments!(KernelAbstractions.get_backend(plus), plus, minus, law, mu, weighted)
     return plus, minus
 end
 
@@ -197,6 +185,34 @@ end
     end
 end
 
+function _expand_source!(::KernelAbstractions.CPU, up, down, plus, minus, front, back)
+    FT = eltype(up)
+    @inbounds for d in axes(plus, 1)
+        h = hemispheric_bin(plus, minus, front, back, d)
+        up[d] = convert(FT, h.up)
+        down[d] = convert(FT, h.down)
+    end
+    return nothing
+end
+
+function _expand_source!(backend, up, down, plus, minus, front, back)
+    k! = _expand_hemispheric_kernel!(backend)
+    k!(
+        up,
+        down,
+        plus,
+        minus,
+        front,
+        back,
+        firstindex(plus, 1),
+        firstindex(plus, 2),
+        size(plus, 2);
+        ndrange = length(up),
+    )
+    KernelAbstractions.synchronize(backend)
+    return nothing
+end
+
 """
     expand_hemispheric_source!(up, down, plus, minus, front, back)
 
@@ -212,57 +228,20 @@ function expand_hemispheric_source!(
     front::AbstractVector,
     back::AbstractVector,
 ) where {FT<:Real}
-    require_continuous_scalar(
-        FT,
-        expand_hemispheric_source!,
-        (up, down, plus, minus, front, back),
-    )
-    FT_req = promote_compatible_scalar(
-        expand_hemispheric_source!,
-        zero(FT),
-        zero(eltype(plus)),
-        zero(eltype(minus)),
-        zero(eltype(front)),
-        zero(eltype(back)),
-    )
-    FT_req === FT ||
-        throw(MethodError(expand_hemispheric_source!, (up, down, plus, minus, front, back)))
+    FT_req = common_scalar_type(up, plus, minus, front, back)
+    FT_req === FT || throw(ArgumentError(_OUTPUT_TYPE))
     axes(plus) == axes(minus) &&
         axes(up) == axes(down) == (axes(plus, 1),) &&
         axes(front) == axes(back) == (axes(plus, 2),) ||
         throw(DimensionMismatch("Hemisphere expansion axes must align"))
     _disjoint_hemispheric_buffers((up, down), (plus, minus, front, back))
-    P = primal_float_type(FT)
     for arr in (plus, minus, front, back)
         for x in _host_linear(arr)
-            finite_scalar(x) && primal_scalar(x) >= zero(P) ||
-                throw(ArgumentError("Hemisphere expansion inputs must be finite and nonnegative"))
+            _checked(x, _nonnegative, "Hemisphere expansion inputs must be finite and nonnegative")
         end
     end
     isempty(up) && return up, down
-    backend = KernelAbstractions.get_backend(up)
-    if backend isa KernelAbstractions.CPU
-        @inbounds for d in axes(plus, 1)
-            h = hemispheric_bin(plus, minus, front, back, d)
-            up[d] = convert(FT, h.up)
-            down[d] = convert(FT, h.down)
-        end
-    else
-        k! = _expand_hemispheric_kernel!(backend)
-        k!(
-            up,
-            down,
-            plus,
-            minus,
-            front,
-            back,
-            firstindex(plus, 1),
-            firstindex(plus, 2),
-            size(plus, 2);
-            ndrange = length(up),
-        )
-        KernelAbstractions.synchronize(backend)
-    end
+    _expand_source!(KernelAbstractions.get_backend(up), up, down, plus, minus, front, back)
     return up, down
 end
 
@@ -312,16 +291,8 @@ function batch_hemispheric_moments!(
     mu::AbstractVector,
     weighted::AbstractArray{<:Real,4},
 ) where {FT<:Real}
-    require_continuous_scalar(FT, batch_hemispheric_moments!, (plus, minus, law, mu, weighted))
-    FT_req = promote_compatible_scalar(
-        batch_hemispheric_moments!,
-        zero(FT),
-        _law_scalar_probe(law, zero(FT)),
-        zero(eltype(mu)),
-        zero(eltype(weighted)),
-    )
-    FT_req === FT ||
-        throw(MethodError(batch_hemispheric_moments!, (plus, minus, law, mu, weighted)))
+    FT_req = common_scalar_type(plus, _precision_operands(law)..., mu, weighted)
+    FT_req === FT || throw(ArgumentError(_OUTPUT_TYPE))
     axes(weighted, 1) == axes(mu, 1) &&
         axes(plus) == axes(minus) == (axes(weighted, 2), axes(weighted, 3), axes(weighted, 4)) ||
         throw(DimensionMismatch("Batch hemisphere moment dimensions or axes do not align"))
@@ -395,21 +366,8 @@ function batch_expand_hemispheric_sources!(
     front::AbstractMatrix,
     back::AbstractMatrix,
 ) where {FT<:Real}
-    require_continuous_scalar(
-        FT,
-        batch_expand_hemispheric_sources!,
-        (up, down, plus, minus, front, back),
-    )
-    FT_req = promote_compatible_scalar(
-        batch_expand_hemispheric_sources!,
-        zero(FT),
-        zero(eltype(plus)),
-        zero(eltype(minus)),
-        zero(eltype(front)),
-        zero(eltype(back)),
-    )
-    FT_req === FT ||
-        throw(MethodError(batch_expand_hemispheric_sources!, (up, down, plus, minus, front, back)))
+    FT_req = common_scalar_type(up, plus, minus, front, back)
+    FT_req === FT || throw(ArgumentError(_OUTPUT_TYPE))
     axes(plus) == axes(minus) &&
         axes(front) == axes(back) &&
         axes(plus, 2) == axes(front, 2) &&
