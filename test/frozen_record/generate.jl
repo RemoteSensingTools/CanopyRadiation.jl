@@ -9,13 +9,22 @@
 # explicit review decision recorded in the commit message.
 #
 # Usage (from a temporary environment that develops CanopyRadiation and
-# CanopyOptics and adds TOML):
+# CanopyOptics and adds TOML and OffsetArrays):
 #
 #     julia --startup-file=no --project=<env> test/frozen_record/generate.jl
 #
-# Output: test/frozen_record/reference.toml (overwritten).
+#     julia ... test/frozen_record/generate.jl --part=api,canopyoptics
+#
+# Output (each overwritten when its part is selected; default: all parts):
+#   core         -> test/frozen_record/reference.toml
+#   api          -> test/frozen_record/reference_api.toml
+#   canopyoptics -> test/frozen_record/reference_canopyoptics.toml
+# The canopyoptics part also records the CanopyOptics version and git commit,
+# and refuses to run if tracked CanopyOptics source is modified.
 
+using CanopyOptics
 using CanopyRadiation
+using OffsetArrays
 using TOML
 
 include(joinpath(@__DIR__, "compute.jl"))
@@ -41,7 +50,60 @@ function write_value(io, x)
     print(io, '"', FrozenRecord.bitstring_hex(x), '"')
 end
 
-function write_reference(path, entries, fx, clean)
+# Reference-table representation of one field value (used for the
+# entry-point agreement check below).
+table_value(v::AbstractFloat) = FrozenRecord.bitstring_hex(v)
+table_value(v::Union{Bool,Integer}) = v
+table_value(v::AbstractVector) =
+    FrozenRecord.is_exact_field(v) ? collect(v) : [FrozenRecord.bitstring_hex(y) for y in v]
+
+const CORE_HEADER = [
+    "# CanopyRadiation frozen numerical record (reference values).",
+    "#",
+    "# Produced by test/frozen_record/generate.jl from CanopyRadiation v0.1.0,",
+    "# commit $FROZEN_COMMIT, with the inputs in test/frozen_record/inputs.toml.",
+    "# DO NOT regenerate from refactored code. Regeneration is a deliberate,",
+    "# reviewed act; see the header of generate.jl.",
+    "#",
+    "# Each table is one code path on one case: <precision>/<group>/<path>/<case>.",
+    "# Values are IEEE-754 bit patterns (hex); the trailing comment gives the",
+    "# decimal value for reading only. Arrays are column-major. Every entry point",
+    "# listed in `entry_points` is compared against the same table.",
+]
+
+const API_HEADER = [
+    "# CanopyRadiation frozen numerical record, extension: remaining public API",
+    "# on manufactured inputs (no CanopyOptics computation involved).",
+    "#",
+    "# Produced by test/frozen_record/generate.jl --part=api from CanopyRadiation",
+    "# v0.1.0, commit $FROZEN_COMMIT, with the api_* inputs in",
+    "# test/frozen_record/inputs.toml. DO NOT regenerate from refactored code.",
+    "# Regeneration is a deliberate, reviewed act; see the header of generate.jl.",
+    "#",
+    "# Table names: <precision>/<entry point>/<case>. Float values are IEEE-754 bit",
+    "# patterns (hex) with the decimal value in a trailing comment; integer and",
+    "# Bool fields (indices, flags, validation outcomes) are plain TOML values and",
+    "# compared exactly. Arrays are column-major.",
+]
+
+const CANOPYOPTICS_HEADER = [
+    "# CanopyRadiation frozen numerical record, extension: CanopyOptics-DEPENDENT",
+    "# tables. Every value here is computed in part by CanopyOptics code (leaf-angle",
+    "# distribution and Gauss-Legendre quadrature, emission-spectrum conditioning,",
+    "# regular-plate escape fates, diffuse plate optics). [meta] records the",
+    "# CanopyOptics version and git commit used; the test does not compare these",
+    "# tables against a different CanopyOptics version.",
+    "#",
+    "# Produced by test/frozen_record/generate.jl --part=canopyoptics from",
+    "# CanopyRadiation v0.1.0, commit $FROZEN_COMMIT, with the canopyoptics_*",
+    "# inputs in test/frozen_record/inputs.toml. DO NOT regenerate from refactored",
+    "# code. Regeneration is a deliberate, reviewed act; see generate.jl.",
+    "#",
+    "# Table names: <precision>/canopyoptics/<entry point>/<case>. Encoding as in",
+    "# reference_api.toml.",
+]
+
+function write_reference(path, entries, fx, clean; header = CORE_HEADER, extra_meta = String[])
     # Collapse entry points that share a key; they must agree bit for bit.
     order = String[]
     by_key = Dict{String,Vector{FrozenRecord.RecordEntry}}()
@@ -52,9 +114,7 @@ function write_reference(path, entries, fx, clean)
     for k in order
         first_e = by_key[k][1]
         for other in by_key[k][2:end]
-            table = Dict{String,Any}(
-                f => (v isa AbstractFloat ? FrozenRecord.bitstring_hex(v) :
-                      [FrozenRecord.bitstring_hex(y) for y in v]) for (f, v) in first_e.fields)
+            table = Dict{String,Any}(f => table_value(v) for (f, v) in first_e.fields)
             table["entry_points"] = [other.entry_point]
             mm, _, _, _, _ = FrozenRecord.compare_record([other], Dict(k => table))
             isempty(mm) || error("entry points sharing key $k disagree:\n" * join(mm, "\n"))
@@ -62,17 +122,7 @@ function write_reference(path, entries, fx, clean)
     end
     n_values = FrozenRecord.record_value_count(entries)
     open(path, "w") do io
-        println(io, "# CanopyRadiation frozen numerical record (reference values).")
-        println(io, "#")
-        println(io, "# Produced by test/frozen_record/generate.jl from CanopyRadiation v0.1.0,")
-        println(io, "# commit $FROZEN_COMMIT, with the inputs in test/frozen_record/inputs.toml.")
-        println(io, "# DO NOT regenerate from refactored code. Regeneration is a deliberate,")
-        println(io, "# reviewed act; see the header of generate.jl.")
-        println(io, "#")
-        println(io, "# Each table is one code path on one case: <precision>/<group>/<path>/<case>.")
-        println(io, "# Values are IEEE-754 bit patterns (hex); the trailing comment gives the")
-        println(io, "# decimal value for reading only. Arrays are column-major. Every entry point")
-        println(io, "# listed in `entry_points` is compared against the same table.")
+        foreach(l -> println(io, l), header)
         println(io)
         println(io, "[meta]")
         println(io, "frozen_commit = \"$FROZEN_COMMIT\"")
@@ -81,6 +131,7 @@ function write_reference(path, entries, fx, clean)
         println(io, "generated_with_julia = \"$(VERSION)\"")
         println(io, "value_count = $n_values")
         println(io, "precisions = [", join(("\"$p\"" for p in fx["precisions"]), ", "), "]")
+        foreach(l -> println(io, l), extra_meta)
         for k in order
             es = by_key[k]
             println(io)
@@ -91,6 +142,10 @@ function write_reference(path, entries, fx, clean)
                 if v isa AbstractFloat
                     write_value(io, v)
                     println(io, "  # ", repr(v))
+                elseif v isa Union{Bool,Integer}
+                    println(io, v)
+                elseif FrozenRecord.is_exact_field(v)
+                    println(io, "[", join(string.(v), ", "), "]")
                 else
                     print(io, "[")
                     for (i, y) in enumerate(v)
@@ -107,14 +162,39 @@ end
 
 function main(args)
     allow = "--allow-modified-source" in args
+    part_arg = findfirst(a -> startswith(a, "--part="), args)
+    parts = part_arg === nothing ? ["core", "api", "canopyoptics"] :
+            split(args[part_arg][length("--part=") + 1:end], ',')
     clean = check_source_is_frozen(allow)
     fx = load_fixture()
-    entries = FrozenRecord.RecordEntry[]
-    for p in fx["precisions"]
-        append!(entries, compute_record(FrozenRecord.precision_type(p), fx))
+    precisions = [FrozenRecord.precision_type(p) for p in fx["precisions"]]
+    collect_entries(f) = reduce(vcat, [f(FT, fx) for FT in precisions])
+    for part in parts
+        if part == "core"
+            path = FrozenRecord.REFERENCE_PATH
+            entries = collect_entries(compute_record)
+            n = write_reference(path, entries, fx, clean)
+        elseif part == "api"
+            path = FrozenRecord.REFERENCE_API_PATH
+            entries = collect_entries(FrozenRecord.compute_api_record)
+            n = write_reference(path, entries, fx, clean; header = API_HEADER)
+        elseif part == "canopyoptics"
+            path = FrozenRecord.REFERENCE_CANOPYOPTICS_PATH
+            entries = collect_entries(FrozenRecord.compute_canopyoptics_record)
+            prov = FrozenRecord.canopyoptics_provenance()
+            prov.tracked_source == "clean" || allow ||
+                error("CanopyOptics checkout has modified tracked source; refusing to record")
+            meta = [
+                "canopyoptics_version = \"$(prov.version)\"",
+                "canopyoptics_git_commit = \"$(prov.commit)\"",
+                "canopyoptics_tracked_source = \"$(prov.tracked_source)\"",
+            ]
+            n = write_reference(path, entries, fx, clean; header = CANOPYOPTICS_HEADER, extra_meta = meta)
+        else
+            error("unknown part $(repr(part)); use core, api or canopyoptics")
+        end
+        println("wrote $path: $n values, $(length(unique(e.key for e in entries))) tables")
     end
-    n = write_reference(FrozenRecord.REFERENCE_PATH, entries, fx, clean)
-    println("wrote $(FrozenRecord.REFERENCE_PATH): $n values, $(length(unique(e.key for e in entries))) tables")
     return nothing
 end
 
