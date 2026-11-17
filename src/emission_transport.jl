@@ -410,59 +410,25 @@ The inputs must have the precision of `ws` and promote to its element type
     n = length(layers)
     length(ws.absorption) == n ||
         throw(DimensionMismatch("Workspace layer count does not match layers"))
-    dt0 = convert(FT, down_top)
-    sr0 = convert(FT, soil_reflect)
-    se0 = convert(FT, soil_emit)
-    f0 = firstindex(ws.down)
-    l0 = firstindex(layers)
-    a0 = firstindex(ws.absorption)
-    gen_sum = zero(FT)
-    @inbounds begin
-        ws.down[f0 + n] = sr0
-        ws.up[f0 + n] = se0
-        for s in (n - 1):-1:0
-            e = convert(EmittingLayer{FT}, layers[l0 + s])
-            p = e.passive
-            r_next = ws.down[f0 + s + 1]
-            s_next = ws.up[f0 + s + 1]
-            inv_den = inv(one(FT) - p.reflection * r_next)
-            ws.down[f0 + s] = p.reflection + p.transmission^2 * r_next * inv_den
-            ws.up[f0 + s] =
-                e.upward + p.transmission * (s_next + r_next * e.downward) * inv_den
-        end
-        r1 = ws.down[f0]
-        s1 = ws.up[f0]
-        ws.down[f0] = dt0
-        ws.up[f0] = r1 * dt0 + s1
-        for s in 0:(n - 1)
-            e = convert(EmittingLayer{FT}, layers[l0 + s])
-            p = e.passive
-            d_curr = ws.down[f0 + s]
-            u_curr = ws.up[f0 + s]
-            r_next = ws.down[f0 + s + 1]
-            s_next = ws.up[f0 + s + 1]
-            val =
-                (p.transmission * d_curr + p.reflection * s_next + e.downward) /
-                (one(FT) - p.reflection * r_next)
-            u_next = r_next * val + s_next
-            ws.down[f0 + s + 1] = val
-            ws.up[f0 + s + 1] = u_next
-            net_l = (d_curr - u_curr) - (val - u_next)
-            ws.net_layer[a0 + s] = net_l
-            ws.absorption[a0 + s] = e.generated + net_l
-            gen_sum += e.generated
-        end
-        net_soil = ws.down[f0 + n] - ws.up[f0 + n]
-        ground_absorbed = (one(FT) - sr0) * ws.down[f0 + n]
-    end
+    sol = _emitting_column_sweep!(
+        column_view(ws.down),
+        column_view(ws.up),
+        column_view(ws.net_layer),
+        column_view(ws.absorption),
+        column_view(layers),
+        n,
+        convert(FT, down_top),
+        convert(FT, soil_reflect),
+        convert(FT, soil_emit),
+    )
     return (;
         down = ws.down,
         up = ws.up,
         net_layer = ws.net_layer,
         absorption = ws.absorption,
-        net_soil,
-        ground_absorbed,
-        generated = gen_sum,
+        sol.net_soil,
+        sol.ground_absorbed,
+        sol.generated,
     )
 end
 

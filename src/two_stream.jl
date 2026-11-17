@@ -718,53 +718,17 @@ The inputs must have the precision of `ws` and promote to its element type
     n = length(layers)
     length(ws.absorption) == n ||
         throw(DimensionMismatch("Workspace layer count does not match layers"))
-    dir0 = convert(FT, direct)
-    dif0 = convert(FT, diffuse)
-    soil0 = convert(FT, soil)
-    f0 = firstindex(ws.direct)
-    l0 = firstindex(layers)
-    a0 = firstindex(ws.absorption)
-    @inbounds begin
-        ws.direct[f0] = dir0
-        for s in 0:(n - 1)
-            op = convert(LayerOperator{FT}, layers[l0 + s])
-            ws.direct[f0 + s + 1] = ws.direct[f0 + s] * op.beam_transmission
-        end
-        ws.down[f0 + n] = soil0
-        ws.up[f0 + n] = soil0 * ws.direct[f0 + n]
-        for s in (n - 1):-1:0
-            p = convert(LayerOperator{FT}, layers[l0 + s])
-            r_next = ws.down[f0 + s + 1]
-            s_next = ws.up[f0 + s + 1]
-            b_curr = ws.direct[f0 + s]
-            den = inv(one(FT) - p.reflection * r_next)
-            ws.down[f0 + s] = p.reflection + p.transmission^2 * r_next * den
-            ws.up[f0 + s] =
-                p.beam_up * b_curr +
-                p.transmission * den * (s_next + r_next * p.beam_down * b_curr)
-        end
-        r1 = ws.down[f0]
-        s1 = ws.up[f0]
-        ws.down[f0] = dif0
-        ws.up[f0] = r1 * dif0 + s1
-        for s in 0:(n - 1)
-            p = convert(LayerOperator{FT}, layers[l0 + s])
-            d_curr = ws.down[f0 + s]
-            u_curr = ws.up[f0 + s]
-            b_curr = ws.direct[f0 + s]
-            b_next = ws.direct[f0 + s + 1]
-            r_next = ws.down[f0 + s + 1]
-            s_next = ws.up[f0 + s + 1]
-            val =
-                (p.transmission * d_curr + p.reflection * s_next + p.beam_down * b_curr) /
-                (one(FT) - p.reflection * r_next)
-            u_next = r_next * val + s_next
-            ws.down[f0 + s + 1] = val
-            ws.up[f0 + s + 1] = u_next
-            ws.absorption[a0 + s] = d_curr + b_curr + u_next - val - b_next - u_curr
-        end
-        ground = (one(FT) - soil0) * (ws.down[f0 + n] + ws.direct[f0 + n])
-    end
+    ground = _passive_column_sweep!(
+        column_view(ws.direct),
+        column_view(ws.down),
+        column_view(ws.up),
+        column_view(ws.absorption),
+        column_view(layers),
+        n,
+        convert(FT, direct),
+        convert(FT, diffuse),
+        convert(FT, soil),
+    )
     return (;
         direct = ws.direct,
         down = ws.down,
