@@ -19,6 +19,7 @@
 #   core         -> test/frozen_record/reference.toml
 #   api          -> test/frozen_record/reference_api.toml
 #   canopyoptics -> test/frozen_record/reference_canopyoptics.toml
+#   regimes      -> test/frozen_record/reference_regimes.toml
 # The canopyoptics part also records the CanopyOptics version and git commit,
 # and refuses to run if tracked CanopyOptics source is modified.
 
@@ -103,6 +104,23 @@ const CANOPYOPTICS_HEADER = [
     "# reference_api.toml.",
 ]
 
+const REGIMES_HEADER = [
+    "# CanopyRadiation frozen numerical record, extension 2: numerical regimes",
+    "# named by the refactor reviews (low sun in 20/40-layer columns with a thick",
+    "# interior layer, darkness, soil reflectance exactly 0 and 1, 4SAIL chain,",
+    "# layer-edge interior reconstruction, empty columns where the tuple and",
+    "# vector paths differ, asymmetric photosystems, photon conversion rounding).",
+    "# Manufactured inputs only (no CanopyOptics computation).",
+    "#",
+    "# Produced by test/frozen_record/generate.jl --part=regimes from",
+    "# CanopyRadiation v0.1.0, commit $FROZEN_COMMIT, with the regime_* inputs in",
+    "# test/frozen_record/inputs.toml. DO NOT regenerate from refactored code.",
+    "# Regeneration is a deliberate, reviewed act; see generate.jl.",
+    "#",
+    "# Table names: <precision>/regimes/<group>/<case...>. Encoding as in",
+    "# reference_api.toml. Deep columns record selected interfaces (see inputs.toml).",
+]
+
 function write_reference(path, entries, fx, clean; header = CORE_HEADER, extra_meta = String[])
     # Collapse entry points that share a key; they must agree bit for bit.
     order = String[]
@@ -163,7 +181,7 @@ end
 function main(args)
     allow = "--allow-modified-source" in args
     part_arg = findfirst(a -> startswith(a, "--part="), args)
-    parts = part_arg === nothing ? ["core", "api", "canopyoptics"] :
+    parts = part_arg === nothing ? ["core", "api", "canopyoptics", "regimes"] :
             split(args[part_arg][length("--part=") + 1:end], ',')
     clean = check_source_is_frozen(allow)
     fx = load_fixture()
@@ -190,8 +208,12 @@ function main(args)
                 "canopyoptics_tracked_source = \"$(prov.tracked_source)\"",
             ]
             n = write_reference(path, entries, fx, clean; header = CANOPYOPTICS_HEADER, extra_meta = meta)
+        elseif part == "regimes"
+            path = FrozenRecord.REFERENCE_REGIMES_PATH
+            entries = collect_entries(FrozenRecord.compute_regime_record)
+            n = write_reference(path, entries, fx, clean; header = REGIMES_HEADER)
         else
-            error("unknown part $(repr(part)); use core, api or canopyoptics")
+            error("unknown part $(repr(part)); use core, api, canopyoptics or regimes")
         end
         println("wrote $path: $n values, $(length(unique(e.key for e in entries))) tables")
     end

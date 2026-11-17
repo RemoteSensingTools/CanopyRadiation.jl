@@ -67,3 +67,75 @@ keys = [
     "Float32/canopyoptics/build_leaf_emission_matrices/births/strict_subset_tail",
     "Float32/canopyoptics/build_leaf_emission_matrices/front_back_births/full_subset_faces",
 ]
+
+# --------------------------------------------------------------------------
+# Regime tables (reference_regimes.toml), measured with `julia -C x86-64` on
+# Julia 1.12.6 and 1.10.12 (identical results). On FMA hosts these tables are
+# bit-exact (1.12.6 / 1.10.12, --check-bounds=yes and default, 1 and 8
+# threads). Without native FMA, unlike the older tables, some Float64 values
+# also change: the AnalyticTwoStream operator of the optically thick layer at
+# grazing sun (k L = 17 to 860) and the deep analytic columns built from it.
+# NativeTwoStream columns stay bit-identical in both precisions.
+
+[no_native_fma_regimes_1eps]
+tolerance_eps = 1.0
+keys = [
+    "Float64/regimes/layer_operator/analytic/sza89_thick",
+    "Float32/regimes/interior_flux_edge/analytic/near_resonant/xlai",
+]
+
+[no_native_fma_regimes_f64_2eps]
+tolerance_eps = 2.0
+keys = [
+    "Float64/regimes/layer_operator/analytic/sza85_thick",
+    "Float64/regimes/layer_operator/analytic/sza89_9_thick",
+]
+
+[no_native_fma_regimes_f64_3eps]
+tolerance_eps = 3.0
+keys = [
+    "Float64/regimes/deep_column/n40_sza89_9/analytic/tuple/mixed_soil02",
+    "Float64/regimes/deep_column/n40_sza89_9/analytic/vector/mixed_soil02",
+    "Float64/regimes/deep_column/n40_sza89_9/analytic/batch/mixed_soil02",
+]
+
+[no_native_fma_regimes_f64_4eps]
+tolerance_eps = 4.0
+keys = [
+    "Float64/regimes/deep_column/n20_sza85/analytic/tuple/mixed_soil02",
+    "Float64/regimes/deep_column/n20_sza85/analytic/vector/mixed_soil02",
+    "Float64/regimes/deep_column/n20_sza85/analytic/batch/mixed_soil02",
+]
+
+[no_native_fma_regimes_f64_5eps]
+tolerance_eps = 5.0
+keys = [
+    "Float64/regimes/deep_column/n20_sza89_9/analytic/tuple/mixed_soil02",
+    "Float64/regimes/deep_column/n20_sza89_9/analytic/vector/mixed_soil02",
+    "Float64/regimes/deep_column/n20_sza89_9/analytic/batch/mixed_soil02",
+]
+
+[no_native_fma_regimes_f32_8eps]
+tolerance_eps = 8.0
+keys = [
+    "Float32/regimes/evaluate_hemispheric_sif_bin/dual_unequal/bin1",
+    "Float32/regimes/evaluate_hemispheric_sif_spectrum/dual_unequal",
+]
+
+[no_native_fma_regimes_f32_13eps]
+tolerance_eps = 13.0
+keys = [
+    "Float32/regimes/deep_column/n20_sza85/analytic/tuple/mixed_soil02",
+    "Float32/regimes/deep_column/n20_sza85/analytic/vector/mixed_soil02",
+    "Float32/regimes/deep_column/n20_sza85/analytic/batch/mixed_soil02",
+]
+
+# This table contains the absorption of a non-absorbing layer, a cancellation
+# residue (1.5e-8 against fluxes of 0.1) whose own eps is meaningless; the
+# tolerance is in eps(Float32) times the largest magnitude in the table.
+[no_native_fma_regimes_f32_table_scale]
+tolerance_mode = "table_scale"
+tolerance_eps = 1.0
+keys = [
+    "Float32/regimes/evaluate_hemispheric_sif_bin/dual_unequal/bin3",
+]

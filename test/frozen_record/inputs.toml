@@ -813,3 +813,264 @@ support = "full"
 births = "faces"
 window = "subset"
 out_of_window = "none"
+
+# ##########################################################################
+# EXTENSION 2 (appended after commit 479b695): numerical regimes named by the
+# refactor reviews. Everything above this banner is frozen and must not change.
+# These sections feed reference_regimes.toml. All inputs are manufactured; no
+# CanopyOptics computation is involved (the 4SAIL chain uses the manufactured
+# [api_foursail_geometry]).
+# Units as above: rates per unit LAI, LAI in m2 m-2, passive fluxes normalized,
+# emitting fluxes W m-2, photon quantities umol m-2 s-1, wavelengths nm.
+# ##########################################################################
+
+# ------------------------------------------------- low sun, deep columns
+# Beam extinction k = G / cos(SZA) with G = 0.5 (spherical leaves); the
+# scattering source rates scale with k (beam_up = 0.06 k, beam_down = 0.08 k).
+[regime_rates.sza85]
+description = "SZA 85 deg: k = 0.5 / cos(85 deg) = 5.737"
+absorption = 0.15
+backscatter = 0.08
+beam_up = 0.3442
+beam_down = 0.459
+extinction = 5.737
+
+[regime_rates.sza89]
+description = "SZA 89 deg: k = 0.5 / cos(89 deg) = 28.65"
+absorption = 0.15
+backscatter = 0.08
+beam_up = 1.719
+beam_down = 2.292
+extinction = 28.65
+
+[regime_rates.sza89_9]
+description = "SZA 89.9 deg: k = 0.5 / cos(89.9 deg) = 286.5"
+absorption = 0.15
+backscatter = 0.08
+beam_up = 17.19
+beam_down = 22.92
+extinction = 286.5
+
+[regime_layers]
+description = "thin layers around one optically thick interior layer"
+thin_lai = 0.15
+thick_lai = 3.0
+
+# Each deep column: n_layers thin layers except a thick layer at
+# thick_position, all with one rate set; solved with every listed method on
+# the tuple, vector and batch paths. Recorded: direct/down/up at interfaces 1,
+# thick_position, thick_position + 1 and n_layers + 1; absorption of the thick
+# layer and the column sum of absorption; ground.
+[regime_passive_scenarios.mixed_soil02]
+direct = 0.7
+diffuse = 0.3
+soil = 0.2
+
+[regime_passive_scenarios.dark]
+description = "darkness: zero direct and zero diffuse"
+direct = 0.0
+diffuse = 0.0
+soil = 0.2
+
+[[regime_deep_columns]]
+name = "n20_sza85"
+rates = "sza85"
+n_layers = 20
+thick_position = 10
+methods = ["analytic", "native"]
+scenarios = ["mixed_soil02"]
+
+[[regime_deep_columns]]
+name = "n20_sza89_9"
+rates = "sza89_9"
+n_layers = 20
+thick_position = 10
+methods = ["analytic", "native"]
+scenarios = ["mixed_soil02"]
+
+[[regime_deep_columns]]
+name = "n40_sza89_9"
+rates = "sza89_9"
+n_layers = 40
+thick_position = 20
+methods = ["analytic", "native"]
+scenarios = ["mixed_soil02"]
+
+[[regime_deep_columns]]
+name = "n20_sza85_dark"
+rates = "sza85"
+n_layers = 20
+thick_position = 10
+methods = ["analytic"]
+scenarios = ["dark"]
+
+# ------------------------------------------------- 4SAIL chain and soil edges
+# foursail_canopy_rates(api_foursail_geometry, leaf) -> layer_operator (every
+# method) -> one-layer column with soil reflectance exactly 0 and exactly 1.
+[regime_foursail_chain]
+leaf = "green_leaf"
+lai = 1.2
+scenarios = ["soil_exactly_0", "soil_exactly_1"]
+
+[regime_passive_scenarios.soil_exactly_0]
+direct = 0.7
+diffuse = 0.3
+soil = 0.0
+
+[regime_passive_scenarios.soil_exactly_1]
+direct = 0.7
+diffuse = 0.3
+soil = 1.0
+
+# ------------------------------------------------- empty passive column
+# Inputs for which v0.1.0's tuple path (soil * (direct + diffuse)) and vector /
+# batch paths (soil * diffuse + soil * direct) differ in the last bit in both
+# Float32 and Float64, so each path's own value is pinned.
+[[regime_empty_cases]]
+name = "differing_a"
+direct = 0.5
+diffuse = 0.3
+soil = 0.2
+
+[[regime_empty_cases]]
+name = "differing_b"
+direct = 0.05
+diffuse = 0.2
+soil = 0.1
+
+# ------------------------------------------------- emitting column edges
+[[regime_emitting_columns]]
+name = "zero_sources_stack"
+description = "three non-emitting layers, no sky and no soil emission (all-zero sources)"
+layers = [
+    { layer = "generic_moderate", emission = "none" },
+    { layer = "generic_zero", emission = "none" },
+    { layer = "conservative_moderate", emission = "none" },
+]
+scenarios = ["zero_sources"]
+
+[[regime_emitting_columns]]
+name = "single_soil_edges"
+description = "one uniformly emitting layer over soil reflectance exactly 0 and exactly 1"
+layers = [{ layer = "generic_moderate", emission = "uniform" }]
+scenarios = ["soil_reflect_exactly_0", "soil_reflect_exactly_1"]
+
+[regime_emitting_scenarios.zero_sources]
+down_top = 0.0
+soil_reflect = 0.3
+soil_emit = 0.0
+
+[regime_emitting_scenarios.soil_reflect_exactly_0]
+down_top = 310.0
+soil_reflect = 0.0
+soil_emit = 385.0
+
+[regime_emitting_scenarios.soil_reflect_exactly_1]
+down_top = 310.0
+soil_reflect = 1.0
+soil_emit = 385.0
+
+# ------------------------------------------------- interior reconstruction at layer edges
+# Each case is evaluated at x = 0 and x = lai of its layer case.
+[[regime_interior_edge_cases]]
+name = "generic"
+layer = "generic_moderate"
+down_top = 0.3
+up_bottom = 0.05
+beam_top = 0.7
+
+[[regime_interior_edge_cases]]
+name = "near_resonant"
+layer = "near_resonant_moderate"
+down_top = 0.4
+up_bottom = 0.1
+beam_top = 0.6
+
+# point_emission_interior with source and observer at the layer edges.
+[[regime_point_edge_cases]]
+name = "source_top_observer_bottom"
+layer = "generic_moderate"
+source_at = "top"
+observer_at = "bottom"
+upward = 0.4
+downward = 0.35
+
+[[regime_point_edge_cases]]
+name = "source_bottom_observer_top"
+layer = "generic_moderate"
+source_at = "bottom"
+observer_at = "top"
+upward = 0.4
+downward = 0.35
+
+[[regime_point_edge_cases]]
+name = "source_top_observer_top"
+layer = "conservative_moderate"
+source_at = "top"
+observer_at = "top"
+upward = 0.3
+downward = 0.5
+
+# emission_interior for every emission in [emissions] at x = 0 and x = lai.
+[regime_emission_edge]
+layer = "generic_moderate"
+down_top = 300.0
+up_bottom = 360.0
+
+# ------------------------------------------------- asymmetric photosystems
+# PSII and PSI differ in magnitude, in spectral support (PSI does not emit
+# into bin 1) and, for the "unequal" pair, in channel count (PSII 2, PSI 1),
+# so exchanging their roles anywhere changes values or the shapes.
+# 3 emission bins; columns sum (with out_of_window) to 1.
+[regime_photosystems]
+psii_shape = [3, 2]
+psii_front = [0.31, 0.12, 0.02, 0.27, 0.15, 0.04]
+psii_back = [0.17, 0.07, 0.01, 0.13, 0.09, 0.02]
+psii_reabsorbed = [0.11, 0.05, 0.04, 0.12, 0.06, 0.07]
+psii_out_of_window = [0.1, 0.05]
+psi_equal_shape = [3, 2]
+psi_equal_front = [0.0, 0.06, 0.21, 0.0, 0.04, 0.24]
+psi_equal_back = [0.0, 0.03, 0.14, 0.0, 0.02, 0.16]
+psi_equal_reabsorbed = [0.0, 0.11, 0.25, 0.0, 0.09, 0.27]
+psi_equal_out_of_window = [0.2, 0.18]
+psi_unequal_shape = [3, 1]
+psi_unequal_front = [0.0, 0.05, 0.22]
+psi_unequal_back = [0.0, 0.02, 0.15]
+psi_unequal_reabsorbed = [0.0, 0.1, 0.26]
+psi_unequal_out_of_window = [0.2]
+# internal photon rates (channel x population, 2 populations)
+internal_psii = [2.3, 0.4, 0.15, 1.7]
+internal_psi_equal = [0.07, 0.9, 0.6, 0.05]
+internal_psi_unequal = [0.45, 0.08]
+
+# SIF stack with a zero-LAI layer and a layer with zero absorption, PSII with
+# 2 channels and PSI with 1 channel ("unequal" pair above).
+[regime_sif]
+lai = [1.1, 0.0, 1.7]
+fractional_depths = [0.25, 0.75]
+weights = [0.5, 0.5]
+psii_plus = [[0.4, 0.3, 0.2, 0.15], [0.33, 0.21, 0.17, 0.11], [0.35, 0.25, 0.18, 0.12]]
+psii_minus = [[0.3, 0.25, 0.15, 0.1], [0.27, 0.19, 0.13, 0.08], [0.28, 0.2, 0.14, 0.09]]
+psii_physical_channels = [[0.9, 0.5], [0.0, 0.0], [1.2, 0.7]]
+psi_plus = [[0.1, 0.08], [0.07, 0.05], [0.09, 0.07]]
+psi_minus = [[0.08, 0.06], [0.05, 0.04], [0.07, 0.06]]
+psi_physical_channels = [[0.3], [0.0], [0.4]]
+absorption_rates = [0.0, 0.05, 0.08]
+backscatter_rates = [0.3, 0.25, 0.25]
+soil_reflect = 0.22
+bins = [1, 3]
+rates_shape = [3, 3]
+absorption_matrix = [0.0, 0.0, 0.0, 0.07, 0.05, 0.06, 0.08, 0.09, 0.07]
+backscatter_matrix = [0.3, 0.32, 0.28, 0.25, 0.27, 0.24, 0.25, 0.26, 0.23]
+soil_spectrum = [0.22, 0.25, 0.3]
+
+# ------------------------------------------------- photon conversions
+# Widths, wavelengths and photon values with many significant digits so that
+# regrouping the products/quotients changes the rounding. Coefficient is
+# N_A h c in J nm umol-1.
+[regime_photon]
+widths_nm = [1.7, 2.3, 3.1, 0.9, 4.7]
+wavelengths_nm = [683.3, 701.7, 719.9, 738.1, 757.3]
+energy_coefficient = 0.119626566
+density_shape = [5, 3]
+density = [0.3517, 0.4219, 0.1873, 0.2711, 0.5123, 0.0937, 0.6619, 0.3141, 0.2718, 0.1414, 0.7071, 0.5772, 0.4142, 0.8862, 0.2236]

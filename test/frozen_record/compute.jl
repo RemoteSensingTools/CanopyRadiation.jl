@@ -542,7 +542,7 @@ function compare_record(rec::Vector{RecordEntry}, ref::AbstractDict; tolerances:
                           "($(bitstring_hex(x))), got $(repr(g)) ($(bitstring_hex(g))), " *
                           "$(ulps_of_value(g, x)) eps of reference value"
                     tol = get(tolerances, e.key, nothing)
-                    if tol !== nothing && isfinite(g) && ulps_of_value(g, x) <= tol
+                    if tol !== nothing && isfinite(g) && within_tolerance(tol, g, x, expected)
                         push!(tolerated, msg)
                     else
                         push!(mismatches, msg)
@@ -571,17 +571,47 @@ host. Sections whose names start with `no_native_fma` apply only when
 result is empty and every value must match bit for bit.
 """
 function host_tolerances(path::AbstractString = HOST_TOLERANCES_PATH)
-    tol = Dict{String,Float64}()
+    tol = Dict{String,Any}()
     t = TOML.parsefile(path)
     if !Core.Intrinsics.have_fma(Float32)
         for (name, sec) in t
             startswith(name, "no_native_fma") || continue
+            mode = get(sec, "tolerance_mode", "value")
             for k in sec["keys"]
-                tol[k] = max(get(tol, k, 0.0), Float64(sec["tolerance_eps"]))
+                if mode == "value"
+                    tol[k] = max(get(tol, k, 0.0), Float64(sec["tolerance_eps"]))
+                elseif mode == "table_scale"
+                    haskey(tol, k) && error("key $k listed in more than one tolerance section")
+                    tol[k] = (; eps = Float64(sec["tolerance_eps"]), mode = :table_scale)
+                else
+                    error("unknown tolerance_mode $(repr(mode)) in [$name]")
+                end
             end
         end
     end
     return tol
+end
+
+"""
+    within_tolerance(tol, got, reference, table)
+
+`tol::Real`: |got - reference| <= tol * eps(reference) (eps of the value).
+`tol` with `mode = :table_scale`: |got - reference| <= tol.eps * eps(FT) * scale,
+where scale is the largest magnitude among the float values of the reference
+`table` (for cancellation residues such as the absorption of a non-absorbing
+layer, whose own eps is meaningless).
+"""
+within_tolerance(tol::Real, g, x, table) = ulps_of_value(g, x) <= tol
+function within_tolerance(tol::NamedTuple, g::FT, x::FT, table) where {FT}
+    tol.mode === :table_scale || error("unknown tolerance mode $(tol.mode)")
+    scale = zero(FT)
+    for (f, v) in table
+        f in METADATA_FIELDS && continue
+        for s in (v isa AbstractString ? (v,) : v)
+            s isa AbstractString && (scale = max(scale, abs(from_hex(FT, s))))
+        end
+    end
+    return Float64(abs(g - x)) <= tol.eps * Float64(eps(FT)) * Float64(scale)
 end
 
 """Number of distinct recorded values (one per key, not per entry point)."""
@@ -597,5 +627,6 @@ function record_value_count(rec::Vector{RecordEntry})
 end
 
 include("compute_api.jl")
+include("compute_regimes.jl")
 
 end # module FrozenRecord
