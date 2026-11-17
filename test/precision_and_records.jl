@@ -572,9 +572,10 @@ end
     a, b, nd = dual(1.0, 2.0), dual(1.0, -0.0), dual(dual(1.0, 1.0), dual(0.0, 1.0))
     af(x) = @allocated CR.all_finite(x)
     ez(x) = @allocated CR.exact_zero(x)
-    se(c, x, y) = @allocated CR.scalar_equal(c, x, y)
+    se_eq(x, y) = @allocated CR.scalar_equal(==, x, y)
+    se_is(x, y) = @allocated CR.scalar_equal(isequal, x, y)
     for _ in 1:2
-        global hook_allocs = (af(a), ez(b), se(==, a, b), se(isequal, a, 1.0), af(nd), se(==, nd, nd))
+        global hook_allocs = (af(a), ez(b), se_eq(a, b), se_is(a, 1.0), af(nd), se_eq(nd, nd), se_is(nd, 1.0))
     end
     @test all(iszero, hook_allocs)
     @test (@inferred CR.all_finite(nd)) && (@inferred CR.exact_zero(dual(-0.0, 0.0)))
