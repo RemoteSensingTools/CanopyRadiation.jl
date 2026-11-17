@@ -39,7 +39,7 @@ struct LayerHemisphericSource{
         physical_channels::V;
         validate::Bool = true,
     ) where {FT<:Real,V<:AbstractVector{FT},M<:AbstractMatrix{FT}}
-        same_precision(lai)
+        same_precision(FT)
         axes(fractional_depths) == axes(weights) ||
             throw(DimensionMismatch("fractional_depths and weights must share axes"))
         axes(plus) == axes(minus) ==
@@ -106,7 +106,7 @@ struct DualLayerHemisphericSource{
     ) where {L2<:LayerHemisphericSource,L1<:LayerHemisphericSource}
         eltype(psii) === eltype(psi) ||
             throw(ArgumentError("PSII and PSI LayerHemisphericSource objects must share scalar type"))
-        psii.lai == psi.lai &&
+        scalar_equal(==, psii.lai, psi.lai) &&
             axes(psii.fractional_depths) == axes(psi.fractional_depths) &&
             _host_linear(psii.fractional_depths) == _host_linear(psi.fractional_depths) &&
             _host_linear(psii.weights) == _host_linear(psi.weights) ||
@@ -133,9 +133,9 @@ Base.eltype(::Type{<:DualLayerHemisphericSource{L2}}) where {L2} = eltype(L2)
     isconcretetype(T) && return T
     isempty(layers) && return fallback
     FT = eltype(layers[firstindex(layers)])
-    same_precision(zero(FT))
+    same_precision(FT)
     for k in eachindex(layers)
-        FT = common_scalar_type(zero(FT), layers[k])
+        FT = common_scalar_type(FT, layers[k])
     end
     return FT
 end
@@ -259,9 +259,9 @@ function evaluate_hemispheric_sif_bin(
     _check_emission_bin(model, bin)
     FT_fallback = _scalar_type_or(eltype(absorption_rates), _precision_operands(model))
     FT_lay = _layers_scalar_type(layers, FT_fallback)
-    FT_src = common_scalar_type(zero(FT_lay), _precision_operands(model)...)
+    FT_src = common_scalar_type(FT_lay, _precision_operands(model)...)
     FT_out = common_scalar_type(
-        zero(FT_src),
+        FT_src,
         absorption_rates,
         backscatter_rates,
         soil_reflect,
@@ -321,9 +321,9 @@ function evaluate_hemispheric_sif_bin(
     _check_emission_bin(dm.psi, bin)
     FT_fallback = _scalar_type_or(eltype(absorption_rates), _precision_operands(dm))
     FT_lay = _layers_scalar_type(layers, FT_fallback)
-    FT_src = common_scalar_type(zero(FT_lay), _precision_operands(dm)...)
+    FT_src = common_scalar_type(FT_lay, _precision_operands(dm)...)
     FT_out = common_scalar_type(
-        zero(FT_src),
+        FT_src,
         absorption_rates,
         backscatter_rates,
         soil_reflect,
@@ -453,7 +453,7 @@ function evaluate_hemispheric_sif_spectrum(
     FT_fallback = _scalar_type_or(eltype(soil_spectrum), _precision_operands(emission_model))
     FT_lay = _layers_scalar_type(layers, FT_fallback)
     FT = common_scalar_type(
-        zero(FT_lay),
+        FT_lay,
         _precision_operands(emission_model)...,
         absorption_matrix,
         backscatter_matrix,
@@ -462,7 +462,7 @@ function evaluate_hemispheric_sif_spectrum(
     l0 = firstindex(layers)
     for k in 1:nl
         lay = layers[l0 + k - 1]
-        common_scalar_type(zero(FT), lay)
+        common_scalar_type(FT, lay)
         if is_single
             _validate_layer_model_channels(lay, emission_model)
         else

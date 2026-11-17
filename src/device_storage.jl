@@ -48,4 +48,4 @@ end
 @inline _rebuild(::QuadratureEmission, fields::Tuple) = QuadratureEmission(fields...; validate = false)
 @inline _rebuild(::LayerHemisphericSource, fields::Tuple) =
     LayerHemisphericSource(fields...; validate = false)
-@inline _constructor_of(::Type{T}) where {T} = getfield(parentmodule(T), nameof(T))
+@inline _constructor_of(::Type{T}) where {T} = Base.typename(T).wrapper

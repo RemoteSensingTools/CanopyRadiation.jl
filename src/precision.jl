@@ -102,11 +102,15 @@ const _NOT_FLOAT = "canopy radiation scalars must be floating point"
 const _MIXED = "mixed floating-point precision in canopy radiation"
 
 # Scalar type of a kernel input: a scalar's own type, the element type of a record
-# or an array, the element type of the records in an array or a homogeneous tuple.
+# or an array, the element type of the records in an array or a homogeneous tuple. A
+# type stands for its values, so a type check needs no value (`same_precision(FT)`).
 @inline _scalar_type(x) = _element_scalar_type(eltype(typeof(x)))
+@inline _scalar_type(::Type{T}) where {T} = _element_scalar_type(T)
 @inline _element_scalar_type(::Type{T}) where {T} = T
 @inline _float_type(x) = primal_type(_scalar_type(x))
-@inline _is_float(::Type{P}) where {P} = P <: AbstractFloat
+# Concrete floating-point types only: an abstract element type (`AbstractFloat[...]`)
+# could hold Float32 and Float64 side by side.
+@inline _is_float(::Type{P}) where {P} = isconcretetype(P) && P <: AbstractFloat
 
 @inline function same_precision(a, rest...)
     P = _float_type(a)

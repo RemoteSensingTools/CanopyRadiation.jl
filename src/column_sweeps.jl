@@ -16,7 +16,9 @@
 # `data[offset + s]` of a vector or `data[offset + s, b]` of column `b` of a matrix
 # (`trailing = (b,)`). No copy and no allocation; isbits for a device array, so it is
 # built inside GPU kernels. Indexing is unchecked unless Julia runs with
-# `--check-bounds=yes`; the callers check the shapes first.
+# `--check-bounds=yes`: `solve_column!` and `solve_emitting_column!` check every
+# workspace and layer length, the batch drivers every matrix and vector axis, before
+# a sweep starts.
 struct ColumnView{A,I<:Tuple}
     data::A
     offset::Int

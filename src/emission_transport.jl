@@ -37,7 +37,7 @@ struct UniformEmission{FT<:Real} <: AbstractVolumeEmission
     downward::FT
 
     function UniformEmission{FT}(upward::FT, downward::FT) where {FT<:Real}
-        same_precision(upward)
+        same_precision(FT)
         return new{FT}(upward, downward)
     end
 end
@@ -137,7 +137,7 @@ struct EmittingLayer{FT<:Real} <: RadiationRecord
         downward::FT,
         generated::FT,
     ) where {FT<:Real}
-        same_precision(upward)
+        same_precision(FT)
         return new{FT}(passive, upward, downward, generated)
     end
 end
@@ -370,7 +370,7 @@ struct EmittingColumnWorkspace{FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{
 end
 
 function EmittingColumnWorkspace(::Type{FT}, n_layers::Integer) where {FT<:Real}
-    same_precision(zero(FT))
+    same_precision(FT)
     n_layers >= 0 || throw(ArgumentError("n_layers must be nonnegative"))
     n = Int(n_layers)
     return EmittingColumnWorkspace(
@@ -408,8 +408,12 @@ The inputs must have the precision of `ws` and promote to its element type
     common_scalar_type(ws.down, layers, down_top, soil_reflect, soil_emit) === FT ||
         throw(ArgumentError("EmittingColumnWorkspace element type must match promoted input type"))
     n = length(layers)
-    length(ws.absorption) == n ||
+    length(ws.absorption) == length(ws.net_layer) == n ||
         throw(DimensionMismatch("Workspace layer count does not match layers"))
+    # The sweep indexes without bounds checks: the vectors may have been resized since
+    # the workspace was built.
+    length(ws.down) == length(ws.up) == n + 1 ||
+        throw(DimensionMismatch("Workspace interface vectors must have length(layers) + 1 entries"))
     sol = _emitting_column_sweep!(
         column_view(ws.down),
         column_view(ws.up),
@@ -480,7 +484,7 @@ end
     soil_reflect::Real,
     soil_emit::Real,
 )
-    FT = common_scalar_type(_precision_operands(layers)..., down_top, soil_reflect, soil_emit)
+    FT = common_scalar_type(_layer_operands(layers)..., down_top, soil_reflect, soil_emit)
     return _solve_emitting_column_tuple(
         _convert_tuple(EmittingLayer{FT}, layers),
         convert(FT, down_top),
@@ -616,7 +620,7 @@ end
     layers::Tuple{EmittingLayer,Vararg{EmittingLayer}},
     soil_reflect::Real,
 )
-    FT = common_scalar_type(_precision_operands(layers)..., soil_reflect)
+    FT = common_scalar_type(_layer_operands(layers)..., soil_reflect)
     return _solve_emission_tuple(_convert_tuple(EmittingLayer{FT}, layers), convert(FT, soil_reflect))
 end
 

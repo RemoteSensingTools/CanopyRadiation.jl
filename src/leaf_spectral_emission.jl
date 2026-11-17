@@ -114,6 +114,8 @@ Base.eltype(::Type{<:LeafEmissionMatrix{FT}}) where {FT} = FT
 
 Pair Photosystem II (`psii`) and Photosystem I (`psi`) leaf spectral escape
 models (`LeafEmissionMatrix` or `NoLeafEmission`) on a shared emission-bin axis.
+Any other model, such as a nested `DualLeafEmissionMatrix`, throws an
+`ArgumentError`.
 
 # Examples
 ```jldoctest
@@ -136,10 +138,19 @@ struct DualLeafEmissionMatrix{P2<:AbstractLeafEmission,P1<:AbstractLeafEmission}
         psii::P2,
         psi::P1,
     ) where {P2<:AbstractLeafEmission,P1<:AbstractLeafEmission}
+        _check_photosystem(psii)
+        _check_photosystem(psi)
         _check_photosystem_pair(psii, psi)
         return new{P2,P1}(psii, psi)
     end
 end
+
+# Each photosystem is one matrix or disabled; a DualLeafEmissionMatrix cannot be
+# nested inside another.
+@inline _check_photosystem(::Union{NoLeafEmission,LeafEmissionMatrix}) = nothing
+_check_photosystem(::AbstractLeafEmission) = throw(
+    ArgumentError("each photosystem of a DualLeafEmissionMatrix must be a LeafEmissionMatrix or NoLeafEmission"),
+)
 
 # Two active photosystem matrices must share the scalar type and the emission-bin
 # axis; a disabled photosystem (NoLeafEmission) pairs with anything.

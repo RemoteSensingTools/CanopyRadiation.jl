@@ -25,7 +25,9 @@ include("forwarddiff_hooks.jl")
             CanopyRadiation;
             ignore = (:Dual, :value, :partials),
         ) === nothing
-        @test check_all_qualified_accesses_are_public(CanopyRadiation) === nothing
+        # adapt_radiation_storage rebuilds objects through `Base.typename(T).wrapper`,
+        # which Base does not declare public.
+        @test check_all_qualified_accesses_are_public(CanopyRadiation; ignore = (:typename,)) === nothing
     end
 
     @static if isdefined(Docs, :undocumented_names)

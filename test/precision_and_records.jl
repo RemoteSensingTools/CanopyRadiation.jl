@@ -487,15 +487,98 @@ fresh_copy(x) = CanopyRadiation._rebuild(x, map(f -> f isa AbstractArray ? copy(
     @test leaf_hemispheric_emission.(o.law, [0.2, 0.4], 0.6, 0.2) ==
           [leaf_hemispheric_emission(o.law, m, 0.6, 0.2) for m in (0.2, 0.4)]
     # adapt_radiation_storage to Array returns an equal object of the same kind
-    for x in (o.bnd, o.atm, o.lem, o.dlem, o.lhs, o.dlhs, NoLeafEmission(), VacuumAtmosphere(),
-            QuadratureEmission([0.5], [1.0], [0.3], [0.2]), ColumnFluxWorkspace(Float64, 2))
+    # (all eleven kinds; field order must match the positional constructors)
+    ws_col = ColumnFluxWorkspace(Float64, 2)
+    ws_emit = EmittingColumnWorkspace(Float64, 2)
+    ws_col.down .= 1.0:3.0
+    ws_emit.net_layer .= [0.5, -0.5]
+    kinds = (o.bnd, o.atm, o.lem, o.dlem, o.lhs, o.dlhs, NoLeafEmission(), VacuumAtmosphere(),
+        QuadratureEmission([0.5], [1.0], [0.3], [0.2]), ws_col, ws_emit)
+    @test length(unique(map(x -> nameof(typeof(x)), kinds))) == 11
+    for x in kinds
         y = adapt_radiation_storage(Array, x)
         @test typeof(y) === typeof(x)
-        x isa ColumnFluxWorkspace || @test y == x
+        @test y == x
     end
+    # Objects constructible only without value checks keep their values
+    q_raw = QuadratureEmission([1.5], [-1.0], [0.3], [0.2]; validate = false)
+    l_raw = LayerHemisphericSource(1.0, [1.5], [1.0], [-0.1;;], [0.1;;], [0.4]; validate = false)
+    @test adapt_radiation_storage(Array, q_raw) == q_raw
+    @test adapt_radiation_storage(Array, l_raw) == l_raw
     # Ranges become arrays of the target type with the same element type
     rm = reshape(0.05:0.05:0.2, 2, 2)
     r = adapt_radiation_storage(Array, LeafEmissionMatrix(rm, rm, rm, 0.05:0.05:0.1))
     @test r.front isa Matrix{Float64} && r.out_of_window isa Vector{Float64}
     @test r == LeafEmissionMatrix(collect(rm), collect(rm), collect(rm), [0.05, 0.1])
+end
+
+@testset "Abstract element types, resized workspaces, nested photosystems, dual LAI" begin
+    # Abstract floating-point element types could mix Float32 and Float64
+    af(x...) = AbstractFloat[x...]
+    @test_throws ArgumentError QuadratureEmission(af(0.5), af(1.0), af(0.3), af(0.2))
+    @test_throws ArgumentError LayerHemisphericSource(1.0, af(0.5), af(1.0), AbstractFloat[0.1;;], AbstractFloat[0.1;;], af(0.4))
+    @test_throws ArgumentError ColumnFluxWorkspace(AbstractFloat, 2)
+    @test_throws ArgumentError EmittingColumnWorkspace(AbstractFloat, 2)
+    m(x) = Matrix{AbstractFloat}(fill(x, 1, 2))
+    v(x) = Vector{AbstractFloat}(fill(x, 2))
+    @test_throws ArgumentError batch_solve_columns!(m(0.0), m(0.0), m(0.0), Matrix{AbstractFloat}(undef, 0, 2), v(0.0),
+        Matrix{AbstractFloat}(undef, 0, 2), Matrix{AbstractFloat}(undef, 0, 2), Matrix{AbstractFloat}(undef, 0, 2),
+        Matrix{AbstractFloat}(undef, 0, 2), Matrix{AbstractFloat}(undef, 0, 2), Vector{AbstractFloat}([0.7, 0.7f0]), v(0.3), v(0.1))
+    @test_throws ArgumentError CanopyRates{AbstractFloat}(0.1, 0.2f0, 0.04, 0.05, 0.6)
+    @test_throws ArgumentError LayerOperator{AbstractFloat}(0.1, 0.6f0, 0.04, 0.05, 0.5)
+    @test_throws ArgumentError UniformEmission{AbstractFloat}(0.1, 0.2f0)
+    @test_throws ArgumentError PopulationQuadrature(1, 1.0, 0.0, af(0.5), af(1.0), af(0.4), af(0.8), PairedIllumination())
+    # Interface vectors resized after construction are caught before the unchecked sweep
+    ops = [layer_operator(AnalyticTwoStream(), CanopyRates(0.1, 0.2, 0.04, 0.05, 0.6), 1.0) for _ in 1:2]
+    ws = ColumnFluxWorkspace(Float64, 2)
+    resize!(ws.down, 2)
+    @test_throws DimensionMismatch solve_column!(ws, ops, 0.7, 0.3, 0.1)
+    els = [emitting_layer(0.1, 0.2, 1.0, UniformEmission(0.3, 0.2)) for _ in 1:2]
+    we = EmittingColumnWorkspace(Float64, 2)
+    resize!(we.up, 1)
+    @test_throws DimensionMismatch solve_emitting_column!(we, els, 300.0, 0.05, 390.0)
+    we2 = EmittingColumnWorkspace(Float64, 2)
+    resize!(we2.net_layer, 1)
+    @test_throws DimensionMismatch solve_emitting_column!(we2, els, 300.0, 0.05, 390.0)
+    # A DualLeafEmissionMatrix holds two single photosystems, not another pair
+    lem = LeafEmissionMatrix([0.3;;], [0.3;;], [0.3;;], [0.1])
+    inner = DualLeafEmissionMatrix(lem, NoLeafEmission())
+    @test_throws ArgumentError DualLeafEmissionMatrix(inner, lem)
+    @test_throws ArgumentError DualLeafEmissionMatrix(NoLeafEmission(), inner)
+    # PSII and PSI layer sources must share LAI in value and derivative components,
+    # identically on every ForwardDiff version; plain floats as before
+    mk(lai) = LayerHemisphericSource(lai, [0.5], [1.0], [0.1;;], [0.1;;], [0.4])
+    mkd(lai) = LayerHemisphericSource(lai, [dual(0.5, 0.0)], [dual(1.0, 0.0)], [dual(0.1, 0.0);;], [dual(0.1, 0.0);;], [dual(0.4, 0.0)])
+    @test DualLayerHemisphericSource(mk(1.0), mk(1.0)).psii.lai == 1.0
+    @test DualLayerHemisphericSource(mk(-0.0 + 1.0), mk(1.0)) isa DualLayerHemisphericSource
+    @test_throws ArgumentError DualLayerHemisphericSource(mk(1.0), mk(1.1))
+    @test DualLayerHemisphericSource(mkd(dual(1.0, 1.0)), mkd(dual(1.0, 1.0))) isa DualLayerHemisphericSource
+    @test_throws ArgumentError DualLayerHemisphericSource(mkd(dual(1.0, 1.0)), mkd(dual(1.0, 0.0)))
+end
+
+@testset "Allocation-free equality of host-array records; scalar hooks on duals" begin
+    mkq() = QuadratureEmission(OffsetArray([0.25, 0.75], 0:1), OffsetArray([0.5, 0.5], 0:1),
+        OffsetArray([0.3, 0.2], 0:1), OffsetArray([0.3, 0.2], 0:1))
+    mkl() = LeafEmissionMatrix(view([0.3 0.2 9.0; 0.2 0.3 9.0], :, 1:2), view([0.2 0.2 9.0; 0.1 0.2 9.0], :, 1:2),
+        view([0.1 0.1 9.0; 0.2 0.1 9.0], :, 1:2), [0.1, 0.2])
+    eq(a, b) = @allocated a == b
+    ie(a, b) = @allocated isequal(a, b)
+    hs(a) = @allocated hash(a)
+    for (a, b) in ((mkq(), mkq()), (mkl(), mkl()))
+        @test a == b && isequal(a, b) && hash(a) == hash(b)
+        eq(a, b), ie(a, b), hs(a)
+        @test eq(a, b) == 0 && ie(a, b) == 0 && hs(a) == 0
+    end
+    a, b, nd = dual(1.0, 2.0), dual(1.0, -0.0), dual(dual(1.0, 1.0), dual(0.0, 1.0))
+    af(x) = @allocated CR.all_finite(x)
+    ez(x) = @allocated CR.exact_zero(x)
+    se(c, x, y) = @allocated CR.scalar_equal(c, x, y)
+    for _ in 1:2
+        global hook_allocs = (af(a), ez(b), se(==, a, b), se(isequal, a, 1.0), af(nd), se(==, nd, nd))
+    end
+    @test all(iszero, hook_allocs)
+    @test (@inferred CR.all_finite(nd)) && (@inferred CR.exact_zero(dual(-0.0, 0.0)))
+    @test !(@inferred CR.scalar_equal(==, a, b)) && (@inferred CR.scalar_equal(==, b, 1.0))
+    @test !(@inferred CR.scalar_equal(isequal, b, 1.0))
+    @test (@inferred CR.scalar_equal(==, nd, nd))
 end

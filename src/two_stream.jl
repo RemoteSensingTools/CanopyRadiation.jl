@@ -42,7 +42,7 @@ function NativeTwoStream(
     thin_norm::Real = primal_type(FT)(0.05),
     source_terms::Integer = 12,
 ) where {FT<:Real}
-    S = common_scalar_type(zero(FT), thin_norm)
+    S = common_scalar_type(FT, thin_norm)
     return NativeTwoStream(convert(S, thin_norm), source_terms)
 end
 
@@ -109,7 +109,7 @@ struct CanopyRates{FT<:Real} <: RadiationRecord
         beam_down::FT,
         extinction::FT,
     ) where {FT<:Real}
-        same_precision(absorption)
+        same_precision(FT)
         return new{FT}(absorption, backscatter, beam_up, beam_down, extinction)
     end
 end
@@ -244,7 +244,7 @@ struct LayerOperator{FT<:Real} <: RadiationRecord
         beam_down::FT,
         beam_transmission::FT,
     ) where {FT<:Real}
-        same_precision(reflection)
+        same_precision(FT)
         return new{FT}(reflection, transmission, beam_up, beam_down, beam_transmission)
     end
 end
@@ -678,7 +678,7 @@ struct ColumnFluxWorkspace{FT<:Real,V<:AbstractVector{FT},A<:AbstractVector{FT}}
 end
 
 function ColumnFluxWorkspace(::Type{FT}, n_layers::Integer) where {FT<:Real}
-    same_precision(zero(FT))
+    same_precision(FT)
     n_layers >= 0 || throw(ArgumentError("n_layers must be nonnegative"))
     n = Int(n_layers)
     return ColumnFluxWorkspace(
@@ -718,6 +718,10 @@ The inputs must have the precision of `ws` and promote to its element type
     n = length(layers)
     length(ws.absorption) == n ||
         throw(DimensionMismatch("Workspace layer count does not match layers"))
+    # The sweep indexes without bounds checks: the vectors may have been resized since
+    # the workspace was built.
+    length(ws.direct) == length(ws.down) == length(ws.up) == n + 1 ||
+        throw(DimensionMismatch("Workspace interface vectors must have length(layers) + 1 entries"))
     ground = _passive_column_sweep!(
         column_view(ws.direct),
         column_view(ws.down),
@@ -781,7 +785,7 @@ end
     diffuse::Real,
     soil::Real,
 )
-    FT = common_scalar_type(_precision_operands(layers)..., direct, diffuse, soil)
+    FT = common_scalar_type(_layer_operands(layers)..., direct, diffuse, soil)
     return _solve_column_tuple(
         _convert_tuple(LayerOperator{FT}, layers),
         convert(FT, direct),

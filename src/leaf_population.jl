@@ -81,7 +81,7 @@ struct PopulationQuadrature{
         VO<:AbstractVector{FT},
         L<:AbstractPopulationLayout,
     }
-        same_precision(lai)
+        same_precision(FT)
         P = primal_type(FT)
         axes(cos_inclinations) == axes(azimuths) ||
             throw(ArgumentError("Leaf inclination and azimuth vectors must share axes"))
@@ -182,7 +182,7 @@ function leaf_inclination_quadrature(
     n_leaf::Integer,
     ::Type{FT} = Float64,
 ) where {FT<:Real}
-    same_precision(zero(FT))
+    same_precision(FT)
     n_leaf > 0 || throw(ArgumentError("n_leaf must be positive"))
     P = primal_type(FT)
     theta_p, w_p = gauleg(Int(n_leaf), zero(P), P(pi) / P(2))
