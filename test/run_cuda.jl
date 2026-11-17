@@ -219,6 +219,62 @@ CUDA.allowscalar(false)
     end
 end
 
+@testset "Device storage round trips and non-CPU driver methods (Float32 & Float64)" begin
+    for FT in (Float32, Float64)
+        rtol = FT === Float32 ? 2.0f-5 : 1.0e-12
+        # adapt_radiation_storage to the device and back, every array-holding kind that
+        # the first testset does not move, and two objects constructible only with
+        # validate = false
+        q = QuadratureEmission(FT[0.25, 0.75], FT[0.5, 0.5], FT[0.3, 0.2], FT[0.3, 0.2])
+        q_raw = QuadratureEmission(FT[1.5], FT[-1], FT[0.3], FT[0.2]; validate = false)
+        lhs = LayerHemisphericSource(FT(1.2), FT[0.25, 0.75], FT[0.5, 0.5], fill(FT(0.1), 2, 2), fill(FT(0.2), 2, 2), FT[0.4, 0.5])
+        lhs_raw = LayerHemisphericSource(FT(1.2), FT[1.5], FT[1], fill(FT(-0.1), 1, 1), fill(FT(0.2), 1, 1), FT[0.4]; validate = false)
+        dlhs = DualLayerHemisphericSource(lhs, lhs)
+        ws = ColumnFluxWorkspace(FT, 3)
+        ws.down .= FT[1, 2, 3, 4]
+        we = EmittingColumnWorkspace(FT, 3)
+        we.net_layer .= FT[1, -1, 2]
+        for x in (q, q_raw, lhs, lhs_raw, dlhs, ws, we)
+            d = adapt_radiation_storage(CuArray, x)
+            @test typeof(d) !== typeof(x)
+            h = adapt_radiation_storage(Array, d)
+            @test typeof(h) === typeof(x)
+            if x isa Union{ColumnFluxWorkspace,EmittingColumnWorkspace}
+                @test all(f -> getfield(h, f) == getfield(x, f), fieldnames(typeof(x)))
+            else
+                @test h == x && hash(h) == hash(x)
+                @test d == x  # equality reads device arrays through a host copy
+            end
+        end
+        @test adapt_radiation_storage(CuArray, dlhs).psi.plus isa CuArray
+        @test adapt_radiation_storage(CuArray, ws).absorption isa CuArray{FT}
+
+        # Non-CPU methods of the scalar-driver kernels (moments, expansion) and the
+        # row-map kernel, against the CPU methods
+        law = MixedLambertianFaces(FT(0.6))
+        mu_h = FT[-0.7, 0.2, 0.9]
+        w_h = FT.(reshape(range(0.1, 1.2; length = 3 * 4 * 2), 3, 4, 2))
+        p_h, m_h = zeros(FT, 4, 2), zeros(FT, 4, 2)
+        hemispheric_source_moments!(p_h, m_h, law, mu_h, w_h)
+        p_d, m_d = CUDA.zeros(FT, 4, 2), CUDA.zeros(FT, 4, 2)
+        hemispheric_source_moments!(p_d, m_d, law, CuArray(mu_h), CuArray(w_h))
+        @test isapprox(Array(p_d), p_h; rtol) && isapprox(Array(m_d), m_h; rtol)
+        f_h, b_h = FT[0.3, 0.1], FT[0.2, 0.4]
+        u_h, v_h = zeros(FT, 4), zeros(FT, 4)
+        expand_hemispheric_source!(u_h, v_h, p_h, m_h, f_h, b_h)
+        u_d, v_d = CUDA.zeros(FT, 4), CUDA.zeros(FT, 4)
+        expand_hemispheric_source!(u_d, v_d, CuArray(p_h), CuArray(m_h), CuArray(f_h), CuArray(b_h))
+        @test isapprox(Array(u_d), u_h; rtol) && isapprox(Array(v_d), v_h; rtol)
+        x_h = FT.(reshape(1:6, 3, 2))
+        r_h = FT[2, 4, 5]
+        for (f!, args) in ((photon_bins!, ()), (photon_density!, ()), (photon_energy!, (FT(0.1196),)))
+            o_h = f!(zeros(FT, 3, 2), x_h, r_h, args...)
+            o_d = f!(CUDA.zeros(FT, 3, 2), CuArray(x_h), CuArray(r_h), args...)
+            @test Array(o_d) == o_h
+        end
+    end
+end
+
 # ---------------------------------------------------------------------------
 # CUDA batch kernels against the frozen v0.1.0 (33f015b) CPU record.
 #

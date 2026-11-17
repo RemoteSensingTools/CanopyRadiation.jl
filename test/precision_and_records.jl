@@ -582,3 +582,78 @@ end
     @test !(@inferred CR.scalar_equal(isequal, b, 1.0))
     @test (@inferred CR.scalar_equal(==, nd, nd))
 end
+
+@testset "Coverage: tail fractions, photosystem checks, bin axes, dual layer conversion" begin
+    # Out-of-window tail fraction forms on a full-window spectrum
+    wl = collect(600.0:10.0:700.0)
+    spec = TabulatedPhotonSpectrum(wl, exp.(-((wl .- 650.0) ./ 20.0) .^ 2))
+    exc = [440.0, 550.0]
+    esc = [RegularPlateEscape(0.3, 0.9) for _ in wl]
+    births = [ExponentialBirthProfile(1.8, 1.0, 0.05) for _ in exc]
+    build(f) = build_leaf_emission_matrices(spec, FullEmissionSupport(), exc, esc, births; out_of_window_fraction = f)
+    @test build(nothing).out_of_window == [0.0, 0.0]
+    @test build(0.1).out_of_window == [0.1, 0.1]
+    @test build([0.1, 0.2]).out_of_window == [0.1, 0.2]
+    @test_throws ArgumentError build(1.0)
+    @test_throws ArgumentError build(NaN)
+    @test_throws DimensionMismatch build([0.1])
+    @test_throws ArgumentError build([0.1, 1.0])
+    @test_throws ArgumentError build(Float32[0.1, 0.2])
+    @test_throws ArgumentError build("0.1")
+    @test_throws ArgumentError build_leaf_emission_matrices(spec, FullEmissionSupport(), exc, esc[1:5], births;
+        window_indices = 1:5, out_of_window_fraction = 0.1)
+    # Photosystems of layer sources and of the model must match; empty layer lists
+    lem = LeafEmissionMatrix(fill(0.2, 2, 1), fill(0.2, 2, 1), fill(0.1, 2, 1), [0.1])
+    dual_m = DualLeafEmissionMatrix(lem, lem)
+    lhs = LayerHemisphericSource(1.0, [0.5], [1.0], [0.1;;], [0.1;;], [0.4])
+    dlhs = DualLayerHemisphericSource(lhs, lhs)
+    spectrum(layers, model) = evaluate_hemispheric_sif_spectrum(layers, model,
+        fill(0.1, 2, length(layers)), fill(0.2, 2, length(layers)), [0.1, 0.1])
+    @test size(spectrum(LayerHemisphericSource[], lem).layer_absorption) == (2, 0)
+    @test size(spectrum(DualLayerHemisphericSource[], dual_m).layer_absorption) == (2, 0)
+    @test spectrum(Any[], lem).top == [0.0, 0.0]
+    @test spectrum(Any[], dual_m).top == [0.0, 0.0]
+    @test spectrum(Any[], NoLeafEmission()).top == [0.0, 0.0]
+    @test_throws ArgumentError spectrum(DualLayerHemisphericSource[], lem)
+    @test_throws ArgumentError spectrum(LayerHemisphericSource[], dual_m)
+    @test_throws ArgumentError spectrum(Int[], lem)
+    @test spectrum(Any[lhs], lem).top == spectrum([lhs], lem).top
+    @test_throws ArgumentError spectrum(Any[lhs, dlhs], lem)
+    @test_throws ArgumentError spectrum([dlhs], lem)
+    @test_throws ArgumentError spectrum([lhs], dual_m)
+    # Emission bin axis: first active photosystem, or 1:n without one
+    lem_off = LeafEmissionMatrix(OffsetArray(fill(0.2, 2, 1), 5:6, 1:1), OffsetArray(fill(0.2, 2, 1), 5:6, 1:1),
+        OffsetArray(fill(0.1, 2, 1), 5:6, 1:1), [0.1])
+    @test CanopyRadiation._emission_bin_axis(DualLeafEmissionMatrix(lem_off, NoLeafEmission()), 2) == [5, 6]
+    @test CanopyRadiation._emission_bin_axis(DualLeafEmissionMatrix(NoLeafEmission(), lem_off), 2) == [5, 6]
+    @test CanopyRadiation._emission_bin_axis(DualLeafEmissionMatrix(NoLeafEmission(), NoLeafEmission()), 2) == [1, 2]
+    @test CanopyRadiation._emission_bin_axis(lem_off, 2) == [5, 6]
+    # Vector solvers convert plain layers to the dual element type of the workspace
+    D = typeof(dual(1.0, 1.0))
+    ops = [layer_operator(AnalyticTwoStream(), CanopyRates(0.1, 0.2, 0.04, 0.05, 0.6), l) for l in (0.5, 1.2)]
+    sol = solve_column!(ColumnFluxWorkspace(D, 2), ops, dual(0.7, 1.0), 0.3, 0.15)
+    ref = solve_column(ops, 0.7, 0.3, 0.15)
+    @test eltype(sol.down) === D && ForwardDiff.value.(sol.down) == ref.down && sol.ground isa D
+    els = [emitting_layer(0.1, 0.2, l, UniformEmission(0.3, 0.2)) for l in (0.5, 1.2)]
+    esol = solve_emitting_column!(EmittingColumnWorkspace(D, 2), els, dual(300.0, 1.0), 0.05, 390.0)
+    eref = solve_emitting_column(els, 300.0, 0.05, 390.0)
+    @test ForwardDiff.value.(esol.up) == eref.up && ForwardDiff.value(esol.generated) == eref.generated
+    @test ForwardDiff.partials(esol.up[1], 1) > 0
+end
+
+@testset "Dual escape: PSII is written first, PSI accumulated (order matters)" begin
+    # The escape writes the PSII products and then adds the PSI products. Floating-
+    # point addition is not associative, so swapping the photosystems changes the
+    # result in general: here PSII gives 1.0 and PSI two terms of 2^-53 each.
+    # PSII first: (1.0 + 2^-53) + 2^-53 rounds to 1.0 in the element loop used for
+    # offset axes; PSI first would give 2^-52 + 1.0 = 1 + 2^-52.
+    t = 2.0^-52
+    psii = LeafEmissionMatrix([1.0;;], [0.0;;], [0.0;;], [0.0])
+    psi = LeafEmissionMatrix([0.5 0.5], [0.0 0.0], [0.0 0.0], [0.0, 0.0])
+    dm = DualLeafEmissionMatrix(psii, psi)
+    f, b, r = (OffsetArray(zeros(1, 1), 1:1, 0:0) for _ in 1:3)
+    escape_dual_leaf_emission!(f, b, r, dm, OffsetArray([1.0;;], 1:1, 0:0), OffsetArray([t; t;;], 1:2, 0:0))
+    @test f[1, 0] === 1.0
+    @test f[1, 0] === (1.0 + 0.5 * t) + 0.5 * t
+    @test f[1, 0] !== (0.5 * t + 0.5 * t) + 1.0
+end
