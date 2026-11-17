@@ -318,3 +318,69 @@ end
         end
     end
 end
+
+# ---------------------------------------------------------------------------
+# CUDA paths of the remaining public API against the frozen v0.1.0 CPU record
+# (test/frozen_record/reference_api.toml; must NOT be regenerated from
+# refactored code): photon_* KernelAbstractions kernels, CuBLAS
+# escape_leaf_emission! / escape_dual_leaf_emission!, and map_spectrum!
+# broadcasts. Same deviation measure and tolerance as above. The hemispheric
+# SIF evaluators have no device path (they index layer sources on the host),
+# so they are not run here.
+# ---------------------------------------------------------------------------
+@testset "CUDA API paths vs frozen v0.1.0 (33f015b) CPU record, tolerance $(CUDA_RECORD_TOL_EPS) eps" begin
+    fx = FrozenRecord.load_fixture()
+    ref = FrozenRecord.load_reference(FrozenRecord.REFERENCE_API_PATH)
+    for pname in fx["precisions"]
+        FT = FrozenRecord.precision_type(pname)
+        groups = Dict{String,NTuple{4,Float64}}()
+        function check!(group, key, got)
+            dev = cuda_record_deviation(ref["$pname/$key"], got, FT)
+            old = get(groups, group, (0.0, 0.0, 0.0, 0.0))
+            groups[group] = (max(old[1], dev[1]), max(old[2], dev[2]), old[3] + dev[3], old[4] + 1)
+            @test dev[1] <= CUDA_RECORD_TOL_EPS
+        end
+
+        le = fx["api_leaf_emission"]
+        dens = CuArray(FrozenRecord.fmat(FT, le["density"], le["density_shape"]))
+        widths = CuArray(FrozenRecord.fl(FT, le["widths_nm"]))
+        wl = CuArray(FrozenRecord.fl(FT, le["wavelengths_nm"]))
+        bins = photon_bins!(similar(dens), dens, widths)
+        check!("photon_kernels", "photon_bins", (; output = Array(bins)))
+        check!("photon_kernels", "photon_density", (; output = Array(photon_density!(similar(dens), bins, widths))))
+        check!("photon_kernels", "photon_energy",
+            (; output = Array(photon_energy!(similar(dens), bins, wl, FrozenRecord.fl(FT, le["energy_coefficient"])))))
+
+        models = FrozenRecord.leaf_emission_models(FT, fx)
+        n_emit, n_pop = size(models.psii.front, 1), size(models.internal_psii, 2)
+        gpu_out() = (CUDA.zeros(FT, n_emit, n_pop), CUDA.zeros(FT, n_emit, n_pop), CUDA.zeros(FT, n_emit, n_pop),
+            CUDA.zeros(FT, n_pop))
+        host(r) = map(Array, r)
+        f, b, r, o = gpu_out()
+        check!("escape_cublas", "escape_leaf_emission/psii/blas",
+            host(escape_leaf_emission!(f, b, r, adapt_radiation_storage(CuArray, models.psii),
+                CuArray(models.internal_psii); out_of_window = o)))
+        for (name, d) in FrozenRecord.dual_combinations(models)
+            f, b, r, o = gpu_out()
+            check!("escape_cublas", "escape_dual_leaf_emission/$name",
+                host(escape_dual_leaf_emission!(f, b, r, adapt_radiation_storage(CuArray, d),
+                    CuArray(models.internal_psii), CuArray(models.internal_psi); out_of_window = o)))
+        end
+
+        sp = fx["api_spectral"]
+        src = FrozenRecord.fmat(FT, sp["src"], sp["src_shape"])
+        lin = LinearSpectralMap(FrozenRecord.fl(FT, sp["anchors"]), FrozenRecord.fl(FT, sp["targets"]))
+        idm = IdentitySpectralMap(FrozenRecord.fl(FT, sp["identity_grid"]))
+        check!("map_spectrum", "spectral_map/linear/map_spectrum",
+            (; dest = Array(map_spectrum!(CUDA.zeros(FT, length(target_grid(lin)), size(src, 2)), lin, CuArray(src)))))
+        check!("map_spectrum", "spectral_map/identity/map_spectrum",
+            (; dest = Array(map_spectrum!(CUDA.zeros(FT, size(src)...), idm, CuArray(src)))))
+
+        for g in sort!(collect(keys(groups)))
+            s, r, nd, nt = groups[g]
+            println("CUDA vs frozen CPU record, $pname $g ($(Int(nt)) tables): max deviation ",
+                "$(round(s; digits = 3)) eps(FT)*table scale; max $(r) eps of value (|value| >= scale/1024); ",
+                "$(Int(nd)) value(s) not bit-identical")
+        end
+    end
+end

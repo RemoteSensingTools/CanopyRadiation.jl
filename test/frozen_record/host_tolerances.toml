@@ -25,3 +25,45 @@ keys = [
     "Float32/passive/batch/single/mixed_bright_soil",
     "Float32/emission_interior/none_upper",
 ]
+
+# --------------------------------------------------------------------------
+# Extension tables (reference_api.toml, reference_canopyoptics.toml), measured
+# the same way with `julia -C x86-64` on Julia 1.12.6 and 1.10.12 (identical
+# results on both). On FMA hosts these tables are bit-exact as well (checked on
+# 1.12.6 / 1.10.12, --check-bounds=yes and default, 1 and 8 threads,
+# OPENBLAS_NUM_THREADS=1 and default). Every section whose name starts with
+# `no_native_fma` applies only when Core.Intrinsics.have_fma(Float32) is false.
+# All Float64 values stay bit-identical without FMA. The Float32 differences
+# come from Float32 `exp`/`expm1` (1 ulp) propagated through the emitting
+# column (layer absorption is a difference of fluxes) and through the
+# CanopyOptics plate escape fates.
+
+[no_native_fma_api_8eps]
+tolerance_eps = 8.0
+keys = [
+    "Float32/evaluate_hemispheric_sif_bin/dual/psii_none/bin2",
+    "Float32/evaluate_hemispheric_sif_bin/dual/none_psi/bin2",
+    "Float32/evaluate_hemispheric_sif_spectrum/dual/psii_psi",
+]
+
+[no_native_fma_api_16eps]
+tolerance_eps = 16.0
+keys = [
+    "Float32/evaluate_hemispheric_sif_spectrum/single/psii",
+    "Float32/evaluate_hemispheric_sif_spectrum/dual/none_psi",
+]
+
+[no_native_fma_canopyoptics_1eps]
+tolerance_eps = 1.0
+keys = [
+    "Float32/canopyoptics/leaf_inclination_quadrature",
+]
+
+[no_native_fma_canopyoptics_7eps]
+tolerance_eps = 7.0
+keys = [
+    "Float32/canopyoptics/build_leaf_emission_matrices/births/strict_all_none",
+    "Float32/canopyoptics/build_leaf_emission_matrices/births/strict_all_vector",
+    "Float32/canopyoptics/build_leaf_emission_matrices/births/strict_subset_tail",
+    "Float32/canopyoptics/build_leaf_emission_matrices/front_back_births/full_subset_faces",
+]

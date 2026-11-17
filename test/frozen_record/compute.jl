@@ -121,6 +121,14 @@ function flatten_fields!(out, ::Type{FT}, prefix::String, x) where {FT}
     if x isa AbstractFloat
         x isa FT || error("field $prefix has type $(typeof(x)), expected $FT")
         push!(out, prefix => x)
+    elseif x isa Bool
+        push!(out, prefix => x)
+    elseif x isa Integer
+        push!(out, prefix => Int(x))
+    elseif x isa AbstractArray && eltype(x) !== Union{} && eltype(x) <: Bool
+        push!(out, prefix => Bool[y for y in x])
+    elseif x isa AbstractArray && eltype(x) !== Union{} && eltype(x) <: Integer
+        push!(out, prefix => Int[y for y in x])
     elseif x isa Tuple || x isa AbstractArray
         v = FT[]
         for y in x
@@ -465,6 +473,8 @@ end
 
 as_vector(x::AbstractFloat) = [x]
 as_vector(x::AbstractVector) = x
+as_vector(x::Integer) = [x]
+is_exact_field(v) = v isa Integer || (v isa AbstractVector && eltype(v) <: Integer)
 
 """Distance between `a` and reference `b` in units of `eps(b)` (the spacing at the reference value)."""
 ulps_of_value(a, b) = a == b ? 0.0 : Float64(abs(a - b)) / Float64(eps(abs(b)))
@@ -508,8 +518,15 @@ function compare_record(rec::Vector{RecordEntry}, ref::AbstractDict; tolerances:
                 push!(mismatches, "$(e.key) [$(e.entry_point)]: field $fname not in reference")
                 continue
             end
-            FT = val isa AbstractVector ? eltype(val) : typeof(val)
             exp_raw = expected[fname]
+            if is_exact_field(val)
+                # Integer and Bool fields (indices, flags) are compared exactly.
+                checked += length(as_vector(val))
+                isequal(exp_raw, val) ||
+                    push!(mismatches, "$(e.key) [$(e.entry_point)]: $fname reference $(repr(exp_raw)), got $(repr(val))")
+                continue
+            end
+            FT = val isa AbstractVector ? eltype(val) : typeof(val)
             exp_vals = FT[from_hex(FT, s) for s in (exp_raw isa AbstractString ? [exp_raw] : exp_raw)]
             got_vals = as_vector(val)
             if (exp_raw isa AbstractString) != (val isa AbstractFloat) || length(exp_vals) != length(got_vals)
@@ -549,7 +566,7 @@ end
     host_tolerances(path = HOST_TOLERANCES_PATH) -> Dict{String,Float64}
 
 Per-key tolerances (in eps of the reference value) that apply on the current
-host. Only the `[no_native_fma]` section exists; it applies when
+host. Sections whose names start with `no_native_fma` apply only when
 `Core.Intrinsics.have_fma(Float32)` is false. On hosts with native FMA the
 result is empty and every value must match bit for bit.
 """
@@ -557,9 +574,11 @@ function host_tolerances(path::AbstractString = HOST_TOLERANCES_PATH)
     tol = Dict{String,Float64}()
     t = TOML.parsefile(path)
     if !Core.Intrinsics.have_fma(Float32)
-        sec = t["no_native_fma"]
-        for k in sec["keys"]
-            tol[k] = Float64(sec["tolerance_eps"])
+        for (name, sec) in t
+            startswith(name, "no_native_fma") || continue
+            for k in sec["keys"]
+                tol[k] = max(get(tol, k, 0.0), Float64(sec["tolerance_eps"]))
+            end
         end
     end
     return tol
@@ -576,5 +595,7 @@ function record_value_count(rec::Vector{RecordEntry})
     end
     return n
 end
+
+include("compute_api.jl")
 
 end # module FrozenRecord

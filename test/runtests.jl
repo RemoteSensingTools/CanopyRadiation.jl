@@ -7,6 +7,7 @@ using Test
 include("qa_and_ad.jl")
 include("precision_and_records.jl")
 include("frozen_record.jl")
+include("frozen_record_api.jl")
 
 @testset "0-ULP donor parity, Native vs Analytic two-stream, and 7-field cavity conservation" begin
     for FT in (Float32, Float64)
