@@ -49,14 +49,20 @@ end
 include("precision.jl")
 include("records.jl")
 include("scalars.jl")
+include("buffer_aliasing.jl")
 include("two_stream.jl")
 include("emission_transport.jl")
 include("column_sweeps.jl")
 include("column_batch.jl")
-include("face_and_geometry.jl")
+include("leaf_face_absorption.jl")
+include("leaf_population.jl")
+include("emission_angular_law.jl")
+include("atmosphere_coupling.jl")
 include("leaf_spectral_emission.jl")
 include("spectral_basis.jl")
-include("hemispheric_sources.jl")
+include("hemispheric_moments.jl")
+include("sif_assembly.jl")
+include("device_storage.jl")
 
 export AbstractTwoStreamMethod,
     NativeTwoStream,

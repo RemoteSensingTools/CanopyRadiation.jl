@@ -2,11 +2,38 @@
 
 Anatomical adaxial/abaxial leaf-face absorption, sun/shade leaf inclination quadrature, directional emission boundary coupling, and single- or dual-photosystem (`PSII + PSI`) conditional spectral escape matrices.
 
-## Leaf-Face Illumination, Population Geometry, & Angular Escape
+## Leaf-Face Absorption
 
 ```@autodocs
 Modules = [CanopyRadiation]
-Pages = ["face_and_geometry.jl"]
+Pages = ["leaf_face_absorption.jl"]
+Order = [:type, :function]
+Private = false
+```
+
+## Leaf Populations & Orientation Quadrature
+
+```@autodocs
+Modules = [CanopyRadiation]
+Pages = ["leaf_population.jl"]
+Order = [:type, :function]
+Private = false
+```
+
+## Leaf Emission Angular Laws & Depth Sources
+
+```@autodocs
+Modules = [CanopyRadiation]
+Pages = ["emission_angular_law.jl"]
+Order = [:type, :function]
+Private = false
+```
+
+## Canopy-Atmosphere Emission Coupling
+
+```@autodocs
+Modules = [CanopyRadiation]
+Pages = ["atmosphere_coupling.jl"]
 Order = [:type, :function]
 Private = false
 ```

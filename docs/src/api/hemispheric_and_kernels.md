@@ -10,19 +10,27 @@ Pages = ["spectral_basis.jl"]
 Order = [:type, :function]
 ```
 
-## Hemispheric Source Projection & Batch Kernels
+## Hemispheric Moments & Source Expansion (Scalar and Batch Kernels)
 
 ```@autodocs
 Modules = [CanopyRadiation]
-Pages = ["hemispheric_sources.jl"]
+Pages = ["hemispheric_moments.jl"]
 Order = [:type, :function]
 ```
 
-## CUDA Storage Adaptation
+## Layer Hemispheric Sources & SIF Assembly
 
 ```@autodocs
 Modules = [CanopyRadiation]
-Pages = ["scalars.jl"]
+Pages = ["sif_assembly.jl"]
+Order = [:type, :function]
+```
+
+## Device Storage Adaptation
+
+```@autodocs
+Modules = [CanopyRadiation]
+Pages = ["device_storage.jl"]
 Order = [:type, :function]
 Private = false
 ```
