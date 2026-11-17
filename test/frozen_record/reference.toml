@@ -1,0 +1,1671 @@
+# CanopyRadiation frozen numerical record (reference values).
+#
+# Produced by test/frozen_record/generate.jl from CanopyRadiation v0.1.0,
+# commit 33f015b, with the inputs in test/frozen_record/inputs.toml.
+# DO NOT regenerate from refactored code. Regeneration is a deliberate,
+# reviewed act; see the header of generate.jl.
+#
+# Each table is one code path on one case: <precision>/<group>/<path>/<case>.
+# Values are IEEE-754 bit patterns (hex); the trailing comment gives the
+# decimal value for reading only. Arrays are column-major. Every entry point
+# listed in `entry_points` is compared against the same table.
+
+[meta]
+frozen_commit = "33f015b"
+package_version = "0.1.0"
+source_matches_frozen_commit = true
+generated_with_julia = "1.12.6"
+value_count = 1514
+precisions = ["Float32", "Float64"]
+
+["Float32/layer_operator/analytic/generic_zero"]
+entry_points = ["layer_operator"]
+"reflection" = "0x00000000"  # 0.0f0
+"transmission" = "0x3f800000"  # 1.0f0
+"beam_up" = "0x00000000"  # 0.0f0
+"beam_down" = "0x00000000"  # 0.0f0
+"beam_transmission" = "0x3f800000"  # 1.0f0
+
+["Float32/layer_operator/native/generic_zero"]
+entry_points = ["layer_operator"]
+"reflection" = "0x00000000"  # 0.0f0
+"transmission" = "0x3f800000"  # 1.0f0
+"beam_up" = "0x00000000"  # 0.0f0
+"beam_down" = "0x00000000"  # 0.0f0
+"beam_transmission" = "0x3f800000"  # 1.0f0
+
+["Float32/diffuse_response/generic_zero"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x00000000"  # 0.0f0
+"transmission" = "0x3f800000"  # 1.0f0
+"source_zero" = "0x00000000"  # 0.0f0
+"source_first" = "0x00000000"  # 0.0f0
+
+["Float32/layer_operator/analytic/generic_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3b8193ad"  # 0.003954372f0
+"transmission" = "0x3f7d132a"  # 0.9885737f0
+"beam_up" = "0x3b008d26"  # 0.001961538f0
+"beam_down" = "0x3b208843"  # 0.002449528f0
+"beam_transmission" = "0x3f77d052"  # 0.96802247f0
+
+["Float32/layer_operator/native/generic_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3b8193ad"  # 0.003954372f0
+"transmission" = "0x3f7d132b"  # 0.98857373f0
+"beam_up" = "0x3b008d28"  # 0.0019615386f0
+"beam_down" = "0x3b208844"  # 0.0024495283f0
+"beam_transmission" = "0x3f77d052"  # 0.96802247f0
+
+["Float32/diffuse_response/generic_thin"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3b8193ad"  # 0.003954372f0
+"transmission" = "0x3f7d132b"  # 0.98857373f0
+"source_zero" = "0x3d4a76bd"  # 0.049429644f0
+"source_first" = "0x3aa1f831"  # 0.0012357292f0
+
+["Float32/layer_operator/analytic/generic_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3da0bdd6"  # 0.07848708f0
+"transmission" = "0x3f3eb10a"  # 0.7448889f0
+"beam_up" = "0x3d072da2"  # 0.033002503f0
+"beam_down" = "0x3d1d6f88"  # 0.038436443f0
+"beam_transmission" = "0x3edbeef3"  # 0.4295574f0
+
+["Float32/layer_operator/native/generic_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3da0bde8"  # 0.07848722f0
+"transmission" = "0x3f3eb124"  # 0.74489045f0
+"beam_up" = "0x3d072daa"  # 0.033002533f0
+"beam_down" = "0x3d1d6f92"  # 0.03843648f0
+"beam_transmission" = "0x3edbeef0"  # 0.42955732f0
+
+["Float32/diffuse_response/generic_moderate"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3da0bdd6"  # 0.07848708f0
+"transmission" = "0x3f3eb10a"  # 0.7448889f0
+"source_zero" = "0x3f7b289e"  # 0.9810885f0
+"source_first" = "0x3f22313e"  # 0.6335639f0
+
+["Float32/layer_operator/analytic/generic_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3e37d37a"  # 0.17951766f0
+"transmission" = "0x39361da5"  # 0.00017367916f0
+"beam_up" = "0x3d67be12"  # 0.05657775f0
+"beam_down" = "0x37b6e409"  # 2.1802278f-5
+"beam_transmission" = "0x2cb3c295"  # 5.109089f-12
+
+["Float32/layer_operator/native/generic_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3e37d352"  # 0.17951706f0
+"transmission" = "0x39361c40"  # 0.00017367397f0
+"beam_up" = "0x3d67be06"  # 0.056577705f0
+"beam_down" = "0x37b6e2c6"  # 2.180169f-5
+"beam_transmission" = "0x2cb3c39a"  # 5.109202f-12
+
+["Float32/diffuse_response/generic_thick"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3e37d37a"  # 0.17951766f0
+"transmission" = "0x39361da5"  # 0.00017367916f0
+"source_zero" = "0x400f9d38"  # 2.2439709f0
+"source_first" = "0x4126705c"  # 10.4024315f0
+
+["Float32/layer_operator/analytic/conservative_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3ee9bd38"  # 0.45652175f0
+"transmission" = "0x3f0b2164"  # 0.54347825f0
+"beam_up" = "0x3ea0c271"  # 0.31398347f0
+"beam_down" = "0x3e9b3307"  # 0.30312368f0
+"beam_transmission" = "0x3ec40a89"  # 0.38289288f0
+
+["Float32/layer_operator/native/conservative_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3ee9bd84"  # 0.456524f0
+"transmission" = "0x3f0b21a1"  # 0.5434819f0
+"beam_up" = "0x3ea0c29b"  # 0.31398472f0
+"beam_down" = "0x3e9b3339"  # 0.30312517f0
+"beam_transmission" = "0x3ec40a9c"  # 0.38289344f0
+
+["Float32/diffuse_response/conservative_moderate"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3ee9bd38"  # 0.45652175f0
+"transmission" = "0x3f0b2164"  # 0.54347825f0
+"source_zero" = "0x3fa6f4df"  # 1.3043479f0
+"source_first" = "0x3fc8590b"  # 1.5652174f0
+
+["Float32/layer_operator/analytic/conservative_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f722983"  # 0.9459459f0
+"transmission" = "0x3d5d67c9"  # 0.054054055f0
+"beam_up" = "0x3f6c47f6"  # 0.92297304f0
+"beam_down" = "0x3d9dc058"  # 0.07702702f0
+"beam_transmission" = "0x310da433"  # 2.0611537f-9
+
+["Float32/layer_operator/native/conservative_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f722a54"  # 0.9459584f0
+"transmission" = "0x3d5d6edf"  # 0.054060813f0
+"beam_up" = "0x3f6c48e7"  # 0.9229874f0
+"beam_down" = "0x3d9dc530"  # 0.07703626f0
+"beam_transmission" = "0x310da2d3"  # 2.0610755f-9
+
+["Float32/diffuse_response/conservative_thick"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3f722983"  # 0.9459459f0
+"transmission" = "0x3d5d67c9"  # 0.054054055f0
+"source_zero" = "0x402cf915"  # 2.7027028f0
+"source_first" = "0x42872298"  # 67.567566f0
+
+["Float32/layer_operator/analytic/weak_absorption_small_q"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3da90d37"  # 0.08254474f0
+"transmission" = "0x3f6acab1"  # 0.9171553f0
+"beam_up" = "0x3d0a282b"  # 0.033729713f0
+"beam_down" = "0x3d1e7a63"  # 0.038690936f0
+"beam_transmission" = "0x3f5c575c"  # 0.860708f0
+
+["Float32/layer_operator/native/weak_absorption_small_q"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3da90d34"  # 0.082544714f0
+"transmission" = "0x3f6acaaf"  # 0.9171552f0
+"beam_up" = "0x3d0a2828"  # 0.033729702f0
+"beam_down" = "0x3d1e7a62"  # 0.038690932f0
+"beam_transmission" = "0x3f5c575c"  # 0.860708f0
+
+["Float32/diffuse_response/weak_absorption_small_q"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3da90d36"  # 0.08254473f0
+"transmission" = "0x3f6acab1"  # 0.9171553f0
+"source_zero" = "0x3e8ce058"  # 0.2751491f0
+"source_first" = "0x3d290d03"  # 0.041272175f0
+
+["Float32/layer_operator/analytic/near_resonant_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3e101965"  # 0.14072187f0
+"transmission" = "0x3f1a4292"  # 0.6025783f0
+"beam_up" = "0x3d827ef0"  # 0.06371868f0
+"beam_down" = "0x3d8d53ae"  # 0.06900726f0
+"beam_transmission" = "0x3f1f3e0d"  # 0.62204057f0
+
+["Float32/layer_operator/native/near_resonant_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3e101973"  # 0.14072208f0
+"transmission" = "0x3f1a42a5"  # 0.6025794f0
+"beam_up" = "0x3d827ef6"  # 0.06371872f0
+"beam_down" = "0x3d8d53b8"  # 0.06900734f0
+"beam_transmission" = "0x3f1f3e11"  # 0.6220408f0
+
+["Float32/diffuse_response/near_resonant_moderate"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3e101965"  # 0.14072187f0
+"transmission" = "0x3f1a4292"  # 0.6025783f0
+"source_zero" = "0x3f702a52"  # 0.93814576f0
+"source_first" = "0x3f30d229"  # 0.6907068f0
+
+["Float32/layer_operator/analytic/strong_absorption_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3b1caf0f"  # 0.0023908054f0
+"transmission" = "0x3f74bc71"  # 0.9560004f0
+"beam_up" = "0x3a7da55c"  # 0.00096758245f0
+"beam_down" = "0x3abe00dd"  # 0.0014496107f0
+"beam_transmission" = "0x3f79ade9"  # 0.9753099f0
+
+["Float32/layer_operator/native/strong_absorption_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3b1caf0e"  # 0.0023908052f0
+"transmission" = "0x3f74bc70"  # 0.9560003f0
+"beam_up" = "0x3a7da55a"  # 0.00096758234f0
+"beam_down" = "0x3abe00dd"  # 0.0014496107f0
+"beam_transmission" = "0x3f79ade9"  # 0.9753099f0
+
+["Float32/diffuse_response/strong_absorption_thin"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3b1caf0e"  # 0.0023908052f0
+"transmission" = "0x3f74bc70"  # 0.9560003f0
+"source_zero" = "0x3d43dad1"  # 0.0478161f0
+"source_first" = "0x3a9ca84e"  # 0.0011952014f0
+
+["Float32/layer_operator/analytic/strong_absorption_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3ce3ba08"  # 0.027798668f0
+"transmission" = "0x3b951f99"  # 0.004550886f0
+"beam_up" = "0x3c73ff2f"  # 0.0148923835f0
+"beam_down" = "0x3b631d2e"  # 0.0034654844f0
+"beam_transmission" = "0x3d4bed86"  # 0.049787067f0
+
+["Float32/layer_operator/native/strong_absorption_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3ce3ba0d"  # 0.027798677f0
+"transmission" = "0x3b951fa9"  # 0.0045508933f0
+"beam_up" = "0x3c73ff2f"  # 0.0148923835f0
+"beam_down" = "0x3b631d25"  # 0.0034654823f0
+"beam_transmission" = "0x3d4bed6e"  # 0.049786977f0
+
+["Float32/diffuse_response/strong_absorption_thick"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3ce3ba08"  # 0.027798668f0
+"transmission" = "0x3b951f99"  # 0.004550886f0
+"source_zero" = "0x3f0e5445"  # 0.55597335f0
+"source_first" = "0x3f1cf3b3"  # 0.61309355f0
+
+["Float32/interior_flux/analytic/generic_upper"]
+entry_points = ["interior_flux"]
+"down" = "0x3e935501"  # 0.2877579f0
+"up" = "0x3d92f9bd"  # 0.0717654f0
+"beam" = "0x3f0a2c25"  # 0.5397361f0
+
+["Float32/interior_flux/native/generic_upper"]
+entry_points = ["interior_flux"]
+"down" = "0x3e935500"  # 0.28775787f0
+"up" = "0x3d92f9c5"  # 0.07176546f0
+"beam" = "0x3f0a2c27"  # 0.5397362f0
+
+["Float32/interior_flux/analytic/conservative_middle"]
+entry_points = ["interior_flux"]
+"down" = "0x3edc1e13"  # 0.42991695f0
+"up" = "0x3eb4630b"  # 0.35231814f0
+"beam" = "0x3eed9ce1"  # 0.46408752f0
+
+["Float32/interior_flux/native/conservative_middle"]
+entry_points = ["interior_flux"]
+"down" = "0x3edc1e49"  # 0.42991856f0
+"up" = "0x3eb4633e"  # 0.35231966f0
+"beam" = "0x3eed9ced"  # 0.46408787f0
+
+["Float32/interior_flux/analytic/near_resonant_lower"]
+entry_points = ["interior_flux"]
+"down" = "0x3ea50125"  # 0.32227436f0
+"up" = "0x3de7d18a"  # 0.11319263f0
+"beam" = "0x3ed8e18c"  # 0.4235958f0
+
+["Float32/interior_flux/native/near_resonant_lower"]
+entry_points = ["interior_flux"]
+"down" = "0x3ea50128"  # 0.32227445f0
+"up" = "0x3de7d18c"  # 0.11319265f0
+"beam" = "0x3ed8e189"  # 0.4235957f0
+
+["Float32/passive/tuple/empty/direct_only_dark_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3f800000"]  # 1.0f0
+"down" = ["0x00000000"]  # 0.0f0
+"up" = ["0x3df5c28f"]  # 0.12f0
+"absorption" = []  # empty
+"ground" = "0x3f6147ae"  # 0.88f0
+
+["Float32/passive/vector/empty/direct_only_dark_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3f800000"]  # 1.0f0
+"down" = ["0x00000000"]  # 0.0f0
+"up" = ["0x3df5c28f"]  # 0.12f0
+"absorption" = []  # empty
+"ground" = "0x3f6147ae"  # 0.88f0
+
+["Float32/passive/tuple/empty/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x00000000"]  # 0.0f0
+"down" = ["0x3f800000"]  # 1.0f0
+"up" = ["0x00000000"]  # 0.0f0
+"absorption" = []  # empty
+"ground" = "0x3f800000"  # 1.0f0
+
+["Float32/passive/vector/empty/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x00000000"]  # 0.0f0
+"down" = ["0x3f800000"]  # 1.0f0
+"up" = ["0x00000000"]  # 0.0f0
+"absorption" = []  # empty
+"ground" = "0x3f800000"  # 1.0f0
+
+["Float32/passive/tuple/empty/mixed_bright_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3f333333"]  # 0.7f0
+"down" = ["0x3e99999a"]  # 0.3f0
+"up" = ["0x3f19999a"]  # 0.6f0
+"absorption" = []  # empty
+"ground" = "0x3ecccccc"  # 0.39999998f0
+
+["Float32/passive/vector/empty/mixed_bright_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3f333333"]  # 0.7f0
+"down" = ["0x3e99999a"]  # 0.3f0
+"up" = ["0x3f19999a"]  # 0.6f0
+"absorption" = []  # empty
+"ground" = "0x3ecccccc"  # 0.39999998f0
+
+["Float32/passive/batch/empty/direct_only_dark_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3f800000"]  # 1.0f0
+"down" = ["0x00000000"]  # 0.0f0
+"up" = ["0x3df5c28f"]  # 0.12f0
+"absorption" = []  # empty
+"ground" = "0x3f6147ae"  # 0.88f0
+
+["Float32/passive/batch/empty/diffuse_only_black_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x00000000"]  # 0.0f0
+"down" = ["0x3f800000"]  # 1.0f0
+"up" = ["0x00000000"]  # 0.0f0
+"absorption" = []  # empty
+"ground" = "0x3f800000"  # 1.0f0
+
+["Float32/passive/batch/empty/mixed_bright_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3f333333"]  # 0.7f0
+"down" = ["0x3e99999a"]  # 0.3f0
+"up" = ["0x3f19999a"]  # 0.6f0
+"absorption" = []  # empty
+"ground" = "0x3ecccccc"  # 0.39999998f0
+
+["Float32/passive/tuple/single/mixed_bright_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3f333333", "0x3edef078"]  # 0.7f0, 0.43542838f0
+"down" = ["0x3e99999a", "0x3e94a9f2"]  # 0.3f0, 0.29035908f0
+"up" = ["0x3eb2cdbd", "0x3edef640"]  # 0.3492259f0, 0.4354725f0
+"absorption" = ["0x3eb88e1b"]  # 0.36045918f0
+"ground" = "0x3e94a42a"  # 0.29031497f0
+
+["Float32/passive/vector/single/mixed_bright_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3f333333", "0x3edef078"]  # 0.7f0, 0.43542838f0
+"down" = ["0x3e99999a", "0x3e94a9f2"]  # 0.3f0, 0.29035908f0
+"up" = ["0x3eb2cdbd", "0x3edef640"]  # 0.3492259f0, 0.4354725f0
+"absorption" = ["0x3eb88e1b"]  # 0.36045918f0
+"ground" = "0x3e94a42a"  # 0.29031497f0
+
+["Float32/passive/batch/single/mixed_bright_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3f333333", "0x3edef078"]  # 0.7f0, 0.43542838f0
+"down" = ["0x3e99999a", "0x3e94a9f2"]  # 0.3f0, 0.29035908f0
+"up" = ["0x3eb2cdbd", "0x3edef640"]  # 0.3492259f0, 0.4354725f0
+"absorption" = ["0x3eb88e1b"]  # 0.36045918f0
+"ground" = "0x3e94a42a"  # 0.29031497f0
+
+["Float32/passive/tuple/stack/direct_only_dark_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3f800000", "0x3f77d052", "0x3f77d052", "0x3ebdc5c4"]  # 1.0f0, 0.96802247f0, 0.96802247f0, 0.37064946f0
+"down" = ["0x00000000", "0x3b7baaaa", "0x3b7baaaa", "0x3eab12ed"]  # 0.0f0, 0.0038401284f0, 0.0038401284f0, 0.33412877f0
+"up" = ["0x3eb2ff68", "0x3eb40cfa", "0x3eb40cfa", "0x3dad34d0"]  # 0.34960485f0, 0.3516615f0, 0.3516615f0, 0.08457339f0
+"absorption" = ["0x3cf75980", "0x33800000", "0xb6740000"]  # 0.030194044f0, 5.9604645f-8, -3.6358833f-6
+"ground" = "0x3f1ec5be"  # 0.6202048f0
+
+["Float32/passive/vector/stack/direct_only_dark_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3f800000", "0x3f77d052", "0x3f77d052", "0x3ebdc5c4"]  # 1.0f0, 0.96802247f0, 0.96802247f0, 0.37064946f0
+"down" = ["0x00000000", "0x3b7baaaa", "0x3b7baaaa", "0x3eab12ed"]  # 0.0f0, 0.0038401284f0, 0.0038401284f0, 0.33412877f0
+"up" = ["0x3eb2ff68", "0x3eb40cfa", "0x3eb40cfa", "0x3dad34d0"]  # 0.34960485f0, 0.3516615f0, 0.3516615f0, 0.08457339f0
+"absorption" = ["0x3cf75980", "0x33800000", "0xb6740000"]  # 0.030194044f0, 5.9604645f-8, -3.6358833f-6
+"ground" = "0x3f1ec5be"  # 0.6202048f0
+
+["Float32/passive/tuple/stack/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x00000000", "0x00000000", "0x00000000", "0x00000000"]  # 0.0f0, 0.0f0, 0.0f0, 0.0f0
+"down" = ["0x3f800000", "0x3f7d8856", "0x3f7d8856", "0x3f09ca55"]  # 1.0f0, 0.9903616f0, 0.9903616f0, 0.5382436f0
+"up" = ["0x3ee6ddf4", "0x3ee77cc7", "0x3ee77cc7", "0x00000000"]  # 0.45091212f0, 0.45212385f0, 0.45212385f0, 0.0f0
+"absorption" = ["0x3c31c500", "0x33000000", "0xb6c50000"]  # 0.010850191f0, 2.9802322f-8, -5.8710575f-6
+"ground" = "0x3f09ca55"  # 0.5382436f0
+
+["Float32/passive/vector/stack/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x00000000", "0x00000000", "0x00000000", "0x00000000"]  # 0.0f0, 0.0f0, 0.0f0, 0.0f0
+"down" = ["0x3f800000", "0x3f7d8856", "0x3f7d8856", "0x3f09ca55"]  # 1.0f0, 0.9903616f0, 0.9903616f0, 0.5382436f0
+"up" = ["0x3ee6ddf4", "0x3ee77cc7", "0x3ee77cc7", "0x00000000"]  # 0.45091212f0, 0.45212385f0, 0.45212385f0, 0.0f0
+"absorption" = ["0x3c31c500", "0x33000000", "0xb6c50000"]  # 0.010850191f0, 2.9802322f-8, -5.8710575f-6
+"ground" = "0x3f09ca55"  # 0.5382436f0
+
+["Float32/passive/tuple/stack/mixed_bright_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3f333333", "0x3f2d7839", "0x3f2d7839", "0x3e84d73c"]  # 0.7f0, 0.6776157f0, 0.6776157f0, 0.2594546f0
+"down" = ["0x3e99999a", "0x3e9a00c1", "0x3e9a00c1", "0x3f1b1cf7"]  # 0.3f0, 0.300787f0, 0.300787f0, 0.6059107f0
+"up" = ["0x3f20aa4f", "0x3f21dc09", "0x3f21dc09", "0x3f04eb8d"]  # 0.6275987f0, 0.6322637f0, 0.6322637f0, 0.5192192f0
+"absorption" = ["0x3cd72400", "0x34000000", "0xb6ec0000"]  # 0.026262283f0, 1.1920929f-7, -7.033348f-6
+"ground" = "0x3eb13a10"  # 0.3461461f0
+
+["Float32/passive/vector/stack/mixed_bright_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3f333333", "0x3f2d7839", "0x3f2d7839", "0x3e84d73c"]  # 0.7f0, 0.6776157f0, 0.6776157f0, 0.2594546f0
+"down" = ["0x3e99999a", "0x3e9a00c1", "0x3e9a00c1", "0x3f1b1cf7"]  # 0.3f0, 0.300787f0, 0.300787f0, 0.6059107f0
+"up" = ["0x3f20aa4f", "0x3f21dc09", "0x3f21dc09", "0x3f04eb8d"]  # 0.6275987f0, 0.6322637f0, 0.6322637f0, 0.5192192f0
+"absorption" = ["0x3cd72400", "0x34000000", "0xb6ec0000"]  # 0.026262283f0, 1.1920929f-7, -7.033348f-6
+"ground" = "0x3eb13a10"  # 0.3461461f0
+
+["Float32/passive/batch/stack/direct_only_dark_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3f800000", "0x3f77d052", "0x3f77d052", "0x3ebdc5c4"]  # 1.0f0, 0.96802247f0, 0.96802247f0, 0.37064946f0
+"down" = ["0x00000000", "0x3b7baaaa", "0x3b7baaaa", "0x3eab12ed"]  # 0.0f0, 0.0038401284f0, 0.0038401284f0, 0.33412877f0
+"up" = ["0x3eb2ff68", "0x3eb40cfa", "0x3eb40cfa", "0x3dad34d0"]  # 0.34960485f0, 0.3516615f0, 0.3516615f0, 0.08457339f0
+"absorption" = ["0x3cf75980", "0x33800000", "0xb6740000"]  # 0.030194044f0, 5.9604645f-8, -3.6358833f-6
+"ground" = "0x3f1ec5be"  # 0.6202048f0
+
+["Float32/passive/batch/stack/diffuse_only_black_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x00000000", "0x00000000", "0x00000000", "0x00000000"]  # 0.0f0, 0.0f0, 0.0f0, 0.0f0
+"down" = ["0x3f800000", "0x3f7d8856", "0x3f7d8856", "0x3f09ca55"]  # 1.0f0, 0.9903616f0, 0.9903616f0, 0.5382436f0
+"up" = ["0x3ee6ddf4", "0x3ee77cc7", "0x3ee77cc7", "0x00000000"]  # 0.45091212f0, 0.45212385f0, 0.45212385f0, 0.0f0
+"absorption" = ["0x3c31c500", "0x33000000", "0xb6c50000"]  # 0.010850191f0, 2.9802322f-8, -5.8710575f-6
+"ground" = "0x3f09ca55"  # 0.5382436f0
+
+["Float32/passive/batch/stack/mixed_bright_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3f333333", "0x3f2d7839", "0x3f2d7839", "0x3e84d73c"]  # 0.7f0, 0.6776157f0, 0.6776157f0, 0.2594546f0
+"down" = ["0x3e99999a", "0x3e9a00c1", "0x3e9a00c1", "0x3f1b1cf7"]  # 0.3f0, 0.300787f0, 0.300787f0, 0.6059107f0
+"up" = ["0x3f20aa4f", "0x3f21dc09", "0x3f21dc09", "0x3f04eb8d"]  # 0.6275987f0, 0.6322637f0, 0.6322637f0, 0.5192192f0
+"absorption" = ["0x3cd72400", "0x34000000", "0xb6ec0000"]  # 0.026262283f0, 1.1920929f-7, -7.033348f-6
+"ground" = "0x3eb13a10"  # 0.3461461f0
+
+["Float32/emitting_layer/generic_moderate/none"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3da0bdd6"  # 0.07848708f0
+"passive.transmission" = "0x3f3eb10a"  # 0.7448889f0
+"passive.beam_up" = "0x00000000"  # 0.0f0
+"passive.beam_down" = "0x00000000"  # 0.0f0
+"passive.beam_transmission" = "0x3f800000"  # 1.0f0
+"upward" = "0x00000000"  # 0.0f0
+"downward" = "0x00000000"  # 0.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting_layer/generic_moderate/uniform"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3da0bdd6"  # 0.07848708f0
+"passive.transmission" = "0x3f3eb10a"  # 0.7448889f0
+"passive.beam_up" = "0x00000000"  # 0.0f0
+"passive.beam_down" = "0x00000000"  # 0.0f0
+"passive.beam_transmission" = "0x3f800000"  # 1.0f0
+"upward" = "0x4324987b"  # 164.59563f0
+"downward" = "0x431f370c"  # 159.21503f0
+"generated" = "0x43b2c000"  # 357.5f0
+
+["Float32/emitting_layer/generic_moderate/quadrature"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3da0bdd6"  # 0.07848708f0
+"passive.transmission" = "0x3f3eb10a"  # 0.7448889f0
+"passive.beam_up" = "0x00000000"  # 0.0f0
+"passive.beam_down" = "0x00000000"  # 0.0f0
+"passive.beam_transmission" = "0x3f800000"  # 1.0f0
+"upward" = "0x433113ec"  # 177.07782f0
+"downward" = "0x43259f40"  # 165.62207f0
+"generated" = "0x43bd2666"  # 378.3f0
+
+["Float32/emitting_layer/conservative_moderate/uniform"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3ee9bd38"  # 0.45652175f0
+"passive.transmission" = "0x3f0b2164"  # 0.54347825f0
+"passive.beam_up" = "0x00000000"  # 0.0f0
+"passive.beam_down" = "0x00000000"  # 0.0f0
+"passive.beam_transmission" = "0x3f800000"  # 1.0f0
+"upward" = "0x43a6a164"  # 333.26086f0
+"downward" = "0x43a35e9c"  # 326.73914f0
+"generated" = "0x44250000"  # 660.0f0
+
+["Float32/emitting_layer/generic_zero/quadrature"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x00000000"  # 0.0f0
+"passive.transmission" = "0x3f800000"  # 1.0f0
+"passive.beam_up" = "0x00000000"  # 0.0f0
+"passive.beam_down" = "0x00000000"  # 0.0f0
+"passive.beam_transmission" = "0x3f800000"  # 1.0f0
+"upward" = "0x00000000"  # 0.0f0
+"downward" = "0x00000000"  # 0.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting_layer/strong_absorption_thick/uniform"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3ce3ba08"  # 0.027798668f0
+"passive.transmission" = "0x3b951f99"  # 0.004550886f0
+"passive.beam_up" = "0x00000000"  # 0.0f0
+"passive.beam_down" = "0x00000000"  # 0.0f0
+"passive.beam_transmission" = "0x3f800000"  # 1.0f0
+"upward" = "0x431f3974"  # 159.22443f0
+"downward" = "0x4319d6c4"  # 153.83893f0
+"generated" = "0x44ce4000"  # 1650.0f0
+
+["Float32/emitting/tuple/empty/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x439b0000"]  # 310.0f0
+"up" = ["0x43c9cccd"]  # 403.6f0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0xc2bb3334"  # -93.600006f0
+"ground_absorbed" = "0x4391b333"  # 291.4f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting/vector/empty/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x439b0000"]  # 310.0f0
+"up" = ["0x43c9cccd"]  # 403.6f0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0xc2bb3334"  # -93.600006f0
+"ground_absorbed" = "0x4391b333"  # 291.4f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emission_only/tuple/empty/sky_and_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x00000000"]  # 0.0f0
+"up" = ["0x00000000"]  # 0.0f0
+"absorption" = []  # empty
+"ground" = "0x00000000"  # 0.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emission_only/vector/empty/sky_and_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x00000000"]  # 0.0f0
+"up" = ["0x00000000"]  # 0.0f0
+"absorption" = []  # empty
+"ground" = "0x00000000"  # 0.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting/tuple/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x437a0000"]  # 250.0f0
+"up" = ["0x42960000"]  # 75.0f0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0x432f0000"  # 175.0f0
+"ground_absorbed" = "0x432f0000"  # 175.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting/vector/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x437a0000"]  # 250.0f0
+"up" = ["0x42960000"]  # 75.0f0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0x432f0000"  # 175.0f0
+"ground_absorbed" = "0x432f0000"  # 175.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emission_only/tuple/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x00000000"]  # 0.0f0
+"up" = ["0x00000000"]  # 0.0f0
+"absorption" = []  # empty
+"ground" = "0x00000000"  # 0.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emission_only/vector/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x00000000"]  # 0.0f0
+"up" = ["0x00000000"]  # 0.0f0
+"absorption" = []  # empty
+"ground" = "0x00000000"  # 0.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting/batch/empty/sky_and_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x439b0000"]  # 310.0f0
+"up" = ["0x43c9cccd"]  # 403.6f0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0xc2bb3334"  # -93.600006f0
+"ground_absorbed" = "0x4391b333"  # 291.4f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting/batch/empty/sky_only_reflective_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x437a0000"]  # 250.0f0
+"up" = ["0x42960000"]  # 75.0f0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0x432f0000"  # 175.0f0
+"ground_absorbed" = "0x432f0000"  # 175.0f0
+"generated" = "0x00000000"  # 0.0f0
+
+["Float32/emitting/tuple/single/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x439b0000", "0x43d32b23"]  # 310.0f0, 422.337f0
+"up" = ["0x43f74ad0", "0x43cd2b8c"]  # 494.58447f0, 410.3402f0
+"net_layer" = ["0xc34494ce"]  # -196.58127f0
+"absorption" = ["0x4320eb32"]  # 160.91873f0
+"net_soil" = "0x413ff2e0"  # 11.996796f0
+"ground_absorbed" = "0x43c67f97"  # 396.9968f0
+"generated" = "0x43b2c000"  # 357.5f0
+
+["Float32/emitting/vector/single/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x439b0000", "0x43d32b23"]  # 310.0f0, 422.337f0
+"up" = ["0x43f74ad0", "0x43cd2b8c"]  # 494.58447f0, 410.3402f0
+"net_layer" = ["0xc34494ce"]  # -196.58127f0
+"absorption" = ["0x4320eb32"]  # 160.91873f0
+"net_soil" = "0x413ff2e0"  # 11.996796f0
+"ground_absorbed" = "0x43c67f97"  # 396.9968f0
+"generated" = "0x43b2c000"  # 357.5f0
+
+["Float32/emission_only/tuple/single/sky_and_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x00000000", "0x431ff7e6"]  # 0.0f0, 159.96835f0
+"up" = ["0x432bbec2", "0x411991d2"]  # 171.74515f0, 9.598101f0
+"absorption" = ["0x420d89d0"]  # 35.384583f0
+"ground" = "0x43165ec9"  # 150.37025f0
+"generated" = "0x43b2c000"  # 357.5f0
+
+["Float32/emission_only/vector/single/sky_and_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x00000000", "0x431ff7e6"]  # 0.0f0, 159.96835f0
+"up" = ["0x432bbec2", "0x411991d2"]  # 171.74515f0, 9.598101f0
+"absorption" = ["0x420d89d0"]  # 35.384583f0
+"ground" = "0x43165ec9"  # 150.37025f0
+"generated" = "0x43b2c000"  # 357.5f0
+
+["Float32/emitting/batch/single/sky_and_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x439b0000", "0x43d32b23"]  # 310.0f0, 422.337f0
+"up" = ["0x43f74ad0", "0x43cd2b8c"]  # 494.58447f0, 410.3402f0
+"net_layer" = ["0xc34494ce"]  # -196.58127f0
+"absorption" = ["0x4320eb32"]  # 160.91873f0
+"net_soil" = "0x413ff2e0"  # 11.996796f0
+"ground_absorbed" = "0x43c67f97"  # 396.9968f0
+"generated" = "0x43b2c000"  # 357.5f0
+
+["Float32/emitting/tuple/stack/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x439b0000", "0x43e280e0", "0x43e280e0", "0x44438f3c"]  # 310.0f0, 453.00684f0, 453.00684f0, 782.23804f0
+"up" = ["0x44446a36", "0x4448469b", "0x4448469b", "0x43d7f796"]  # 785.65955f0, 801.1032f0, 801.1032f0, 431.93427f0
+"net_layer" = ["0xc2ff2058", "0x00000000", "0xc42e999c"]  # -127.56317f0, 0.0f0, -698.40015f0
+"absorption" = ["0x4365efd4", "0x00000000", "0xb9000000"]  # 229.93683f0, 0.0f0, -0.00012207031f0
+"net_soil" = "0x43af26e2"  # 350.30377f0
+"ground_absorbed" = "0x4437d371"  # 735.3038f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emitting/vector/stack/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x439b0000", "0x43e280e0", "0x43e280e0", "0x44438f3c"]  # 310.0f0, 453.00684f0, 453.00684f0, 782.23804f0
+"up" = ["0x44446a36", "0x4448469b", "0x4448469b", "0x43d7f796"]  # 785.65955f0, 801.1032f0, 801.1032f0, 431.93427f0
+"net_layer" = ["0xc2ff2058", "0x00000000", "0xc42e999c"]  # -127.56317f0, 0.0f0, -698.40015f0
+"absorption" = ["0x4365efd4", "0x00000000", "0xb9000000"]  # 229.93683f0, 0.0f0, -0.00012207031f0
+"net_soil" = "0x43af26e2"  # 350.30377f0
+"ground_absorbed" = "0x4437d371"  # 735.3038f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emission_only/tuple/stack/sky_and_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x00000000", "0x43439d91", "0x43439d91", "0x43e4d9bd"]  # 0.0f0, 195.6155f0, 195.6155f0, 457.70108f0
+"up" = ["0x43ff0762", "0x43e7e368", "0x43e7e368", "0x41dbb24f"]  # 510.05768f0, 463.7766f0, 463.7766f0, 27.462065f0
+"absorption" = ["0x42e734f8", "0x00000000", "0xb9000000"]  # 115.603455f0, 0.0f0, -0.00012207031f0
+"ground" = "0x43d71e98"  # 430.239f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emission_only/vector/stack/sky_and_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x00000000", "0x43439d91", "0x43439d91", "0x43e4d9bd"]  # 0.0f0, 195.6155f0, 195.6155f0, 457.70108f0
+"up" = ["0x43ff0762", "0x43e7e368", "0x43e7e368", "0x41dbb24f"]  # 510.05768f0, 463.7766f0, 463.7766f0, 27.462065f0
+"absorption" = ["0x42e734f8", "0x00000000", "0xb9000000"]  # 115.603455f0, 0.0f0, -0.00012207031f0
+"ground" = "0x43d71e98"  # 430.239f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emitting/tuple/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x437a0000", "0x43c60845", "0x43c60845", "0x44208237"]  # 250.0f0, 396.0646f0, 396.0646f0, 642.0346f0
+"up" = ["0x44262cdd", "0x44214297", "0x44214297", "0x43409c43"]  # 664.701f0, 645.04047f0, 645.04047f0, 192.6104f0
+"net_layer" = ["0xc325b9a2", "0x00000000", "0xc42e999a"]  # -165.72513f0, 0.0f0, -698.4f0
+"absorption" = ["0x433fc65e", "0x00000000", "0x00000000"]  # 191.77487f0, 0.0f0, 0.0f0
+"net_soil" = "0x43e0b64c"  # 449.4242f0
+"ground_absorbed" = "0x43e0b64d"  # 449.42422f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emitting/vector/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x437a0000", "0x43c60845", "0x43c60845", "0x44208237"]  # 250.0f0, 396.0646f0, 396.0646f0, 642.0346f0
+"up" = ["0x44262cdd", "0x44214297", "0x44214297", "0x43409c43"]  # 664.701f0, 645.04047f0, 645.04047f0, 192.6104f0
+"net_layer" = ["0xc325b9a2", "0x00000000", "0xc42e999a"]  # -165.72513f0, 0.0f0, -698.4f0
+"absorption" = ["0x433fc65e", "0x00000000", "0x00000000"]  # 191.77487f0, 0.0f0, 0.0f0
+"net_soil" = "0x43e0b64c"  # 449.4242f0
+"ground_absorbed" = "0x43e0b64d"  # 449.42422f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emission_only/tuple/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x00000000", "0x43494b43", "0x43494b43", "0x4401d884"]  # 0.0f0, 201.29399f0, 201.29399f0, 519.38306f0
+"up" = ["0x440cfccc", "0x4406080f", "0x4406080f", "0x431bd09f"]  # 563.94995f0, 536.1259f0, 536.1259f0, 155.81493f0
+"absorption" = ["0x430061c8", "0x00000000", "0x00000000"]  # 128.38196f0, 0.0f0, 0.0f0
+"ground" = "0x43b5c8b9"  # 363.56815f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emission_only/vector/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x00000000", "0x43494b43", "0x43494b43", "0x4401d884"]  # 0.0f0, 201.29399f0, 201.29399f0, 519.38306f0
+"up" = ["0x440cfccc", "0x4406080f", "0x4406080f", "0x431bd09f"]  # 563.94995f0, 536.1259f0, 536.1259f0, 155.81493f0
+"absorption" = ["0x430061c8", "0x00000000", "0x00000000"]  # 128.38196f0, 0.0f0, 0.0f0
+"ground" = "0x43b5c8b9"  # 363.56815f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emitting/batch/stack/sky_and_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x439b0000", "0x43e280e0", "0x43e280e0", "0x44438f3c"]  # 310.0f0, 453.00684f0, 453.00684f0, 782.23804f0
+"up" = ["0x44446a36", "0x4448469b", "0x4448469b", "0x43d7f796"]  # 785.65955f0, 801.1032f0, 801.1032f0, 431.93427f0
+"net_layer" = ["0xc2ff2058", "0x00000000", "0xc42e999c"]  # -127.56317f0, 0.0f0, -698.40015f0
+"absorption" = ["0x4365efd4", "0x00000000", "0xb9000000"]  # 229.93683f0, 0.0f0, -0.00012207031f0
+"net_soil" = "0x43af26e2"  # 350.30377f0
+"ground_absorbed" = "0x4437d371"  # 735.3038f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/emitting/batch/stack/sky_only_reflective_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x437a0000", "0x43c60845", "0x43c60845", "0x44208237"]  # 250.0f0, 396.0646f0, 396.0646f0, 642.0346f0
+"up" = ["0x44262cdd", "0x44214297", "0x44214297", "0x43409c43"]  # 664.701f0, 645.04047f0, 645.04047f0, 192.6104f0
+"net_layer" = ["0xc325b9a2", "0x00000000", "0xc42e999a"]  # -165.72513f0, 0.0f0, -698.4f0
+"absorption" = ["0x433fc65e", "0x00000000", "0x00000000"]  # 191.77487f0, 0.0f0, 0.0f0
+"net_soil" = "0x43e0b64c"  # 449.4242f0
+"ground_absorbed" = "0x43e0b64d"  # 449.42422f0
+"generated" = "0x4483fccd"  # 1055.9f0
+
+["Float32/point_emission_response/observer_above"]
+entry_points = ["point_emission_response"]
+"upward" = "0x3eba73d7"  # 0.36416504f0
+"downward" = "0x3ea06b0c"  # 0.3133167f0
+"up_at_source" = "0x3ed5d14c"  # 0.41761243f0
+"down_at_source" = "0x3ebc2cb9"  # 0.3675287f0
+
+["Float32/point_emission_interior/observer_above"]
+entry_points = ["point_emission_interior"]
+"down" = "0x3beec65a"  # 0.007286829f0
+"up" = "0x3ec57320"  # 0.38564396f0
+
+["Float32/point_emission_response/observer_at_source"]
+entry_points = ["point_emission_response"]
+"upward" = "0x3eba73d7"  # 0.36416504f0
+"downward" = "0x3ea06b0c"  # 0.3133167f0
+"up_at_source" = "0x3ed5d14c"  # 0.41761243f0
+"down_at_source" = "0x3ebc2cb9"  # 0.3675287f0
+
+["Float32/point_emission_interior/observer_at_source"]
+entry_points = ["point_emission_interior"]
+"down" = "0x3c8f986b"  # 0.017528733f0
+"up" = "0x3ed5d14c"  # 0.41761243f0
+
+["Float32/point_emission_response/observer_below"]
+entry_points = ["point_emission_response"]
+"upward" = "0x3ec8590b"  # 0.39130434f0
+"downward" = "0x3ed1408d"  # 0.4086956f0
+"up_at_source" = "0x3f03ba8c"  # 0.5145652f0
+"down_at_source" = "0x3f1f8e06"  # 0.62326086f0
+
+["Float32/point_emission_interior/observer_below"]
+entry_points = ["point_emission_interior"]
+"down" = "0x3f02426d"  # 0.5088261f0
+"up" = "0x3dcd1130"  # 0.10013044f0
+
+["Float32/emission_interior/none_upper"]
+entry_points = ["emission_interior"]
+"down" = "0x438e6dc1"  # 284.85745f0
+"up" = "0x4399d127"  # 307.634f0
+
+["Float32/emission_interior/uniform_lower"]
+entry_points = ["emission_interior"]
+"down" = "0x43c28c39"  # 389.0955f0
+"up" = "0x43c0edfb"  # 385.85922f0
+
+["Float32/emission_interior/quadrature_middle"]
+entry_points = ["emission_interior"]
+"down" = "0x43a423f5"  # 328.2809f0
+"up" = "0x43e68658"  # 461.04956f0
+
+["Float32/emission_interior/quadrature_conservative"]
+entry_points = ["emission_interior"]
+"down" = "0x441a512e"  # 617.26843f0
+"up" = "0x43f62dfa"  # 492.3592f0
+
+["Float32/hemispheric_moment/scalar/lambertian"]
+entry_points = ["hemispheric_moment", "hemispheric_source_moments!"]
+"plus" = ["0x3f19db23", "0x3ea20c4a", "0x3ee33334", "0x3e8872b0"]  # 0.601f0, 0.3165f0, 0.44375002f0, 0.2665f0
+"minus" = ["0x3e991688", "0x3e08b43a", "0x3f06b852", "0x3e8c0832"]  # 0.29900002f0, 0.13350001f0, 0.52625f0, 0.27350003f0
+
+["Float32/hemispheric_moment/batch/lambertian"]
+entry_points = ["batch_hemispheric_moments!"]
+"plus" = ["0x3f19db23", "0x3ea20c4a", "0x3ee33334", "0x3e8872b0", "0x3ed78d50", "0x3f2dc28f", "0x3f177cee", "0x3f2e353f"]  # 0.601f0, 0.3165f0, 0.44375002f0, 0.2665f0, 0.421f0, 0.67875f0, 0.59175f0, 0.6805f0
+"minus" = ["0x3e991688", "0x3e08b43a", "0x3f06b852", "0x3e8c0832", "0x3ed6872b", "0x3e900000", "0x3e843958", "0x3e943959"]  # 0.29900002f0, 0.13350001f0, 0.52625f0, 0.27350003f0, 0.419f0, 0.28125f0, 0.25825f0, 0.28950003f0
+
+["Float32/hemispheric_bin/scalar/lambertian"]
+entry_points = ["hemispheric_bin", "expand_hemispheric_source!"]
+"up" = ["0x3ea891d2", "0x3e314e3c", "0x3e8f14ba", "0x3e19ce08"]  # 0.32923752f0, 0.17315f0, 0.279455f0, 0.15020001f0
+"down" = ["0x3ea2f34e", "0x3e284b5f", "0x3e9304ac", "0x3e1db22e"]  # 0.31826252f0, 0.16435002f0, 0.28714502f0, 0.15400001f0
+
+["Float32/hemispheric_bin/batch/lambertian"]
+entry_points = ["batch_expand_hemispheric_sources!"]
+"up" = ["0x3ea891d2", "0x3e314e3c", "0x3e8f14ba", "0x3e19ce08"]  # 0.32923752f0, 0.17315f0, 0.279455f0, 0.15020001f0
+"down" = ["0x3ea2f34e", "0x3e284b5f", "0x3e9304ac", "0x3e1db22e"]  # 0.31826252f0, 0.16435002f0, 0.28714502f0, 0.15400001f0
+
+["Float32/hemispheric_moment/scalar/mixed"]
+entry_points = ["hemispheric_moment", "hemispheric_source_moments!"]
+"plus" = ["0x3f0e425b", "0x3e93fe5d", "0x3ee98938", "0x3e88fc50"]  # 0.5557f0, 0.28905f0, 0.45612502f0, 0.26755f0
+"minus" = ["0x3eb04818", "0x3e24d014", "0x3f038d51", "0x3e8b7e91"]  # 0.34430003f0, 0.16095f0, 0.51387507f0, 0.27245f0
+
+["Float32/hemispheric_moment/batch/mixed"]
+entry_points = ["batch_hemispheric_moments!"]
+"plus" = ["0x3f0e425b", "0x3e93fe5d", "0x3ee98938", "0x3e88fc50", "0x3ed765fe", "0x3f1e7efa", "0x3f0aae7e", "0x3f1f3190"]  # 0.5557f0, 0.28905f0, 0.45612502f0, 0.26755f0, 0.4207f0, 0.619125f0, 0.54172504f0, 0.62185f0
+"minus" = ["0x3eb04818", "0x3e24d014", "0x3f038d51", "0x3e8b7e91", "0x3ed6ae7d", "0x3eae872a", "0x3e9dd639", "0x3eb240b8"]  # 0.34430003f0, 0.16095f0, 0.51387507f0, 0.27245f0, 0.4193f0, 0.34087497f0, 0.308275f0, 0.34815f0
+
+["Float32/hemispheric_bin/scalar/mixed"]
+entry_points = ["hemispheric_bin", "expand_hemispheric_source!"]
+"up" = ["0x3ea7ba0b", "0x3e2ff434", "0x3e8fabec", "0x3e1a6374"]  # 0.32759127f0, 0.17183f0, 0.28060853f0, 0.15077001f0
+"down" = ["0x3ea3cb16", "0x3e29a566", "0x3e926d7b", "0x3e1d1cc1"]  # 0.3199088f0, 0.16567001f0, 0.28599152f0, 0.15343f0
+
+["Float32/hemispheric_bin/batch/mixed"]
+entry_points = ["batch_expand_hemispheric_sources!"]
+"up" = ["0x3ea7ba0b", "0x3e2ff434", "0x3e8fabec", "0x3e1a6374"]  # 0.32759127f0, 0.17183f0, 0.28060853f0, 0.15077001f0
+"down" = ["0x3ea3cb16", "0x3e29a566", "0x3e926d7b", "0x3e1d1cc1"]  # 0.3199088f0, 0.16567001f0, 0.28599152f0, 0.15343f0
+
+["Float64/layer_operator/analytic/generic_zero"]
+entry_points = ["layer_operator"]
+"reflection" = "0x0000000000000000"  # 0.0
+"transmission" = "0x3ff0000000000000"  # 1.0
+"beam_up" = "0x0000000000000000"  # 0.0
+"beam_down" = "0x0000000000000000"  # 0.0
+"beam_transmission" = "0x3ff0000000000000"  # 1.0
+
+["Float64/layer_operator/native/generic_zero"]
+entry_points = ["layer_operator"]
+"reflection" = "0x0000000000000000"  # 0.0
+"transmission" = "0x3ff0000000000000"  # 1.0
+"beam_up" = "0x0000000000000000"  # 0.0
+"beam_down" = "0x0000000000000000"  # 0.0
+"beam_transmission" = "0x3ff0000000000000"  # 1.0
+
+["Float64/diffuse_response/generic_zero"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x0000000000000000"  # 0.0
+"transmission" = "0x3ff0000000000000"  # 1.0
+"source_zero" = "0x0000000000000000"  # 0.0
+"source_first" = "0x0000000000000000"  # 0.0
+
+["Float64/layer_operator/analytic/generic_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f70327584194a6b"  # 0.003954371497075652
+"transmission" = "0x3fefa2655aed2dda"  # 0.9885737205417471
+"beam_up" = "0x3f6011a4e70262bb"  # 0.0019615383863079406
+"beam_down" = "0x3f6411086de6c424"  # 0.002449528182488796
+"beam_transmission" = "0x3feefa0a377a3761"  # 0.968022449831306
+
+["Float64/layer_operator/native/generic_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f70327584194a6a"  # 0.003954371497075651
+"transmission" = "0x3fefa2655aed2dd7"  # 0.9885737205417467
+"beam_up" = "0x3f6011a4e70262b7"  # 0.001961538386307939
+"beam_down" = "0x3f6411086de6c423"  # 0.0024495281824887956
+"beam_transmission" = "0x3feefa0a377a3761"  # 0.968022449831306
+
+["Float64/diffuse_response/generic_thin"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3f70327584194a6a"  # 0.003954371497075651
+"transmission" = "0x3fefa2655aed2dd7"  # 0.9885737205417467
+"source_zero" = "0x3fa94ed79e678446"  # 0.049429643713445645
+"source_first" = "0x3f543f060a8826e0"  # 0.0012357291217334684
+
+["Float64/layer_operator/analytic/generic_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fb417bac2caa340"  # 0.0784870839658085
+"transmission" = "0x3fe7d62144ebb28e"  # 0.7448889108760157
+"beam_up" = "0x3fa0e5b456a46a9e"  # 0.03300250585217167
+"beam_down" = "0x3fa3adf0e1128426"  # 0.0384364390131469
+"beam_transmission" = "0x3fdb7dde25515cad"  # 0.4295573582107391
+
+["Float64/layer_operator/native/generic_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fb417bac2caa33b"  # 0.07848708396580843
+"transmission" = "0x3fe7d62144ebb287"  # 0.7448889108760149
+"beam_up" = "0x3fa0e5b456a46a9e"  # 0.03300250585217167
+"beam_down" = "0x3fa3adf0e1128426"  # 0.0384364390131469
+"beam_transmission" = "0x3fdb7dde25515cb1"  # 0.4295573582107393
+
+["Float64/diffuse_response/generic_moderate"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3fb417bac2caa340"  # 0.0784870839658085
+"transmission" = "0x3fe7d62144ebb28e"  # 0.7448889108760157
+"source_zero" = "0x3fef6513d05c9f14"  # 0.9810885495726063
+"source_first" = "0x3fe44627dca5ab2a"  # 0.6335639295115005
+
+["Float64/layer_operator/analytic/generic_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fc6fa6f4d632495"  # 0.17951766279864914
+"transmission" = "0x3f26c3b4c8395e9b"  # 0.0001736791783624084
+"beam_up" = "0x3facf7c23ca54133"  # 0.0565777491598304
+"beam_down" = "0x3ef6dc813740a628"  # 2.180227916440659e-5
+"beam_transmission" = "0x3d967852a7007e42"  # 5.109089028063325e-12
+
+["Float64/layer_operator/native/generic_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fc6fa6f4d6324a6"  # 0.1795176627986496
+"transmission" = "0x3f26c3b4c8395f40"  # 0.00017367917836241288
+"beam_up" = "0x3facf7c23ca5413c"  # 0.056577749159830465
+"beam_down" = "0x3ef6dc813740a6c1"  # 2.180227916440711e-5
+"beam_transmission" = "0x3d967852a7007e0b"  # 5.109089028063281e-12
+
+["Float64/diffuse_response/generic_thick"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3fc6fa6f4d632495"  # 0.17951766279864914
+"transmission" = "0x3f26c3b4c8395e9b"  # 0.0001736791783624084
+"source_zero" = "0x4001f3a6f4757494"  # 2.243970784983114
+"source_first" = "0x4024ce0b6ebd9871"  # 10.402430973667125
+
+["Float64/layer_operator/analytic/conservative_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fdd37a6f4de9bd4"  # 0.4565217391304348
+"transmission" = "0x3fe1642c8590b217"  # 0.5434782608695653
+"beam_up" = "0x3fd4184de09b8c6a"  # 0.31398341116272965
+"beam_down" = "0x3fd36660f59bdd74"  # 0.3031237028621583
+"beam_transmission" = "0x3fd8815129c89622"  # 0.38289288597511206
+
+["Float64/layer_operator/native/conservative_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fdd37a6f4de9beb"  # 0.4565217391304361
+"transmission" = "0x3fe1642c8590b229"  # 0.5434782608695673
+"beam_up" = "0x3fd4184de09b8c77"  # 0.3139834111627304
+"beam_down" = "0x3fd36660f59bdd84"  # 0.3031237028621592
+"beam_transmission" = "0x3fd8815129c89628"  # 0.3828928859751124
+
+["Float64/diffuse_response/conservative_moderate"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3fdd37a6f4de9bd4"  # 0.4565217391304348
+"transmission" = "0x3fe1642c8590b217"  # 0.5434782608695653
+"source_zero" = "0x3ff4de9bd37a6f4e"  # 1.3043478260869565
+"source_first" = "0x3ff90b21642c8591"  # 1.565217391304348
+
+["Float64/layer_operator/analytic/conservative_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fee45306eb3e453"  # 0.9459459459459459
+"transmission" = "0x3fabacf914c1bad0"  # 0.05405405405405406
+"beam_up" = "0x3fed88fe9dc6da91"  # 0.9229729730203237
+"beam_down" = "0x3fb3b80b08eee843"  # 0.07702702491852258
+"beam_transmission" = "0x3e21b48655f37267"  # 2.061153622438558e-9
+
+["Float64/layer_operator/native/conservative_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fee45306eb3e3c3"  # 0.94594594594593
+"transmission" = "0x3fabacf914c1b5ee"  # 0.05405405405404538
+"beam_up" = "0x3fed88fe9dc6d9db"  # 0.9229729730203035
+"beam_down" = "0x3fb3b80b08eee4d8"  # 0.07702702491851043
+"beam_transmission" = "0x3e21b48655f37276"  # 2.061153622438564e-9
+
+["Float64/diffuse_response/conservative_thick"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3fee45306eb3e453"  # 0.9459459459459459
+"transmission" = "0x3fabacf914c1bad0"  # 0.05405405405405406
+"source_zero" = "0x40059f22983759f2"  # 2.7027027027027026
+"source_first" = "0x4050e45306eb3e45"  # 67.56756756756756
+
+["Float64/layer_operator/analytic/weak_absorption_small_q"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fb521a6a6ad28cc"  # 0.08254472321746958
+"transmission" = "0x3fed59561ec5ef13"  # 0.9171553231276185
+"beam_up" = "0x3fa1450540b2bf2f"  # 0.033729709766133424
+"beam_down" = "0x3fa3cf4c40e0a413"  # 0.03869093219720567
+"beam_transmission" = "0x3feb8aeb7444dce0"  # 0.8607079764250578
+
+["Float64/layer_operator/native/weak_absorption_small_q"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fb521a6a6ad28ca"  # 0.08254472321746956
+"transmission" = "0x3fed59561ec5ef11"  # 0.9171553231276183
+"beam_up" = "0x3fa1450540b2bf2e"  # 0.03372970976613342
+"beam_down" = "0x3fa3cf4c40e0a414"  # 0.03869093219720568
+"beam_transmission" = "0x3feb8aeb7444dce1"  # 0.8607079764250579
+
+["Float64/diffuse_response/weak_absorption_small_q"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3fb521a6a6ad28cc"  # 0.08254472321746958
+"transmission" = "0x3fed59561ec5ef13"  # 0.9171553231276185
+"source_zero" = "0x3fd19c0ae03af755"  # 0.2751490773915653
+"source_first" = "0x3fa521a068a7b503"  # 0.0412721755745711
+
+["Float64/layer_operator/analytic/near_resonant_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fc2032c9de05bf9"  # 0.14072187146004447
+"transmission" = "0x3fe348523c674021"  # 0.6025782756569279
+"beam_up" = "0x3fb04fdde7625161"  # 0.06371867083573114
+"beam_down" = "0x3fb1aa75b040c970"  # 0.06900725892118031
+"beam_transmission" = "0x3fe3e7c193db7630"  # 0.622040547164664
+
+["Float64/layer_operator/native/near_resonant_moderate"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3fc2032c9de05bf6"  # 0.1407218714600444
+"transmission" = "0x3fe348523c67401b"  # 0.6025782756569272
+"beam_up" = "0x3fb04fdde762515e"  # 0.0637186708357311
+"beam_down" = "0x3fb1aa75b040c96c"  # 0.06900725892118026
+"beam_transmission" = "0x3fe3e7c193db762d"  # 0.6220405471646636
+
+["Float64/diffuse_response/near_resonant_moderate"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3fc2032c9de05bf9"  # 0.14072187146004447
+"transmission" = "0x3fe348523c674021"  # 0.6025782756569279
+"source_zero" = "0x3fee054a5c75ee9e"  # 0.9381458097336297
+"source_first" = "0x3fe61a45605abb97"  # 0.6907069093630182
+
+["Float64/layer_operator/analytic/strong_absorption_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f6395e1c0acf54c"  # 0.002390805171130472
+"transmission" = "0x3fee978e1cca1ba7"  # 0.9560003816885584
+"beam_up" = "0x3f4fb4ab8174bf73"  # 0.0009675824575534467
+"beam_down" = "0x3f57c01b931847fe"  # 0.0014496106417749561
+"beam_transmission" = "0x3fef35bd21f40adc"  # 0.9753099120283326
+
+["Float64/layer_operator/native/strong_absorption_thin"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f6395e1c0acf54c"  # 0.002390805171130472
+"transmission" = "0x3fee978e1cca1ba7"  # 0.9560003816885584
+"beam_up" = "0x3f4fb4ab8174bf72"  # 0.0009675824575534466
+"beam_down" = "0x3f57c01b931847ff"  # 0.0014496106417749564
+"beam_transmission" = "0x3fef35bd21f40adc"  # 0.9753099120283326
+
+["Float64/diffuse_response/strong_absorption_thin"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3f6395e1c0acf54c"  # 0.002390805171130472
+"transmission" = "0x3fee978e1cca1ba7"  # 0.9560003816885584
+"source_zero" = "0x3fa87b5a30d8329e"  # 0.04781610342260943
+"source_first" = "0x3f539509dd7377e7"  # 0.001195201524573525
+
+["Float64/layer_operator/analytic/strong_absorption_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f9c77410b417837"  # 0.027798668205257306
+"transmission" = "0x3f72a3f332b4986d"  # 0.004550886146978167
+"beam_up" = "0x3f8e7fe61e6a3be3"  # 0.014892385295096794
+"beam_down" = "0x3f6c63a5e99c049c"  # 0.003465484664844155
+"beam_transmission" = "0x3fa97db0ccceb0af"  # 0.049787068367863944
+
+["Float64/layer_operator/native/strong_absorption_thick"]
+entry_points = ["layer_operator"]
+"reflection" = "0x3f9c77410b417825"  # 0.027798668205257244
+"transmission" = "0x3f72a3f332b4982b"  # 0.00455088614697811
+"beam_up" = "0x3f8e7fe61e6a3bd3"  # 0.014892385295096766
+"beam_down" = "0x3f6c63a5e99c047a"  # 0.0034654846648441403
+"beam_transmission" = "0x3fa97db0ccceb0b2"  # 0.049787068367863965
+
+["Float64/diffuse_response/strong_absorption_thick"]
+entry_points = ["diffuse_response"]
+"reflection" = "0x3f9c77410b417837"  # 0.027798668205257306
+"transmission" = "0x3f72a3f332b4986d"  # 0.004550886146978167
+"source_zero" = "0x3fe1ca88a708eb23"  # 0.5559733641051462
+"source_first" = "0x3fe39e767af026d1"  # 0.6130936051497092
+
+["Float64/interior_flux/analytic/generic_upper"]
+entry_points = ["interior_flux"]
+"down" = "0x3fd26aa004d12b49"  # 0.28775787802139924
+"up" = "0x3fb25f37a07ca639"  # 0.07176540058267102
+"beam" = "0x3fe14584a9a609a7"  # 0.5397361100624963
+
+["Float64/interior_flux/native/generic_upper"]
+entry_points = ["interior_flux"]
+"down" = "0x3fd26aa004d12b42"  # 0.28775787802139885
+"up" = "0x3fb25f37a07ca640"  # 0.07176540058267111
+"beam" = "0x3fe14584a9a609a7"  # 0.5397361100624963
+
+["Float64/interior_flux/analytic/conservative_middle"]
+entry_points = ["interior_flux"]
+"down" = "0x3fdb83c283656251"  # 0.429916981045186
+"up" = "0x3fd68c6182bab62f"  # 0.3523181702283606
+"beam" = "0x3fddb39c3dd5892a"  # 0.4640875438546056
+
+["Float64/interior_flux/native/conservative_middle"]
+entry_points = ["interior_flux"]
+"down" = "0x3fdb83c283656260"  # 0.42991698104518683
+"up" = "0x3fd68c6182bab63e"  # 0.3523181702283614
+"beam" = "0x3fddb39c3dd5892f"  # 0.4640875438546059
+
+["Float64/interior_flux/analytic/near_resonant_lower"]
+entry_points = ["interior_flux"]
+"down" = "0x3fd4a024a307ec84"  # 0.32227435990325426
+"up" = "0x3fbcfa314a68ecda"  # 0.11319263521811554
+"beam" = "0x3fdb1c317b2b557a"  # 0.42359578159570044
+
+["Float64/interior_flux/native/near_resonant_lower"]
+entry_points = ["interior_flux"]
+"down" = "0x3fd4a024a307ec8d"  # 0.32227435990325476
+"up" = "0x3fbcfa314a68ecd6"  # 0.11319263521811548
+"beam" = "0x3fdb1c317b2b5577"  # 0.42359578159570027
+
+["Float64/passive/tuple/empty/direct_only_dark_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3ff0000000000000"]  # 1.0
+"down" = ["0x0000000000000000"]  # 0.0
+"up" = ["0x3fbeb851eb851eb8"]  # 0.12
+"absorption" = []  # empty
+"ground" = "0x3fec28f5c28f5c29"  # 0.88
+
+["Float64/passive/vector/empty/direct_only_dark_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3ff0000000000000"]  # 1.0
+"down" = ["0x0000000000000000"]  # 0.0
+"up" = ["0x3fbeb851eb851eb8"]  # 0.12
+"absorption" = []  # empty
+"ground" = "0x3fec28f5c28f5c29"  # 0.88
+
+["Float64/passive/tuple/empty/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x0000000000000000"]  # 0.0
+"down" = ["0x3ff0000000000000"]  # 1.0
+"up" = ["0x0000000000000000"]  # 0.0
+"absorption" = []  # empty
+"ground" = "0x3ff0000000000000"  # 1.0
+
+["Float64/passive/vector/empty/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x0000000000000000"]  # 0.0
+"down" = ["0x3ff0000000000000"]  # 1.0
+"up" = ["0x0000000000000000"]  # 0.0
+"absorption" = []  # empty
+"ground" = "0x3ff0000000000000"  # 1.0
+
+["Float64/passive/tuple/empty/mixed_bright_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3fe6666666666666"]  # 0.7
+"down" = ["0x3fd3333333333333"]  # 0.3
+"up" = ["0x3fe3333333333333"]  # 0.6
+"absorption" = []  # empty
+"ground" = "0x3fd999999999999a"  # 0.4
+
+["Float64/passive/vector/empty/mixed_bright_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3fe6666666666666"]  # 0.7
+"down" = ["0x3fd3333333333333"]  # 0.3
+"up" = ["0x3fe3333333333333"]  # 0.6
+"absorption" = []  # empty
+"ground" = "0x3fd999999999999a"  # 0.4
+
+["Float64/passive/batch/empty/direct_only_dark_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3ff0000000000000"]  # 1.0
+"down" = ["0x0000000000000000"]  # 0.0
+"up" = ["0x3fbeb851eb851eb8"]  # 0.12
+"absorption" = []  # empty
+"ground" = "0x3fec28f5c28f5c29"  # 0.88
+
+["Float64/passive/batch/empty/diffuse_only_black_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x0000000000000000"]  # 0.0
+"down" = ["0x3ff0000000000000"]  # 1.0
+"up" = ["0x0000000000000000"]  # 0.0
+"absorption" = []  # empty
+"ground" = "0x3ff0000000000000"  # 1.0
+
+["Float64/passive/batch/empty/mixed_bright_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3fe6666666666666"]  # 0.7
+"down" = ["0x3fd3333333333333"]  # 0.3
+"up" = ["0x3fe3333333333333"]  # 0.6
+"absorption" = []  # empty
+"ground" = "0x3fd999999999999a"  # 0.4
+
+["Float64/passive/tuple/single/mixed_bright_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3fe6666666666666", "0x3fdbde0f02333f10"]  # 0.7, 0.43542838301526476
+"down" = ["0x3fd3333333333333", "0x3fd2953e2fbdf868"]  # 0.3, 0.29035906469642336
+"up" = ["0x3fd659b781a9be00", "0x3fdbdec7eac3ee14"]  # 0.3492258802643562, 0.43547246862701283
+"absorption" = ["0x3fd711c33728f89c"]  # 0.3604591406509685
+"ground" = "0x3fd29485472d4963"  # 0.29031497908467524
+
+["Float64/passive/vector/single/mixed_bright_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3fe6666666666666", "0x3fdbde0f02333f10"]  # 0.7, 0.43542838301526476
+"down" = ["0x3fd3333333333333", "0x3fd2953e2fbdf868"]  # 0.3, 0.29035906469642336
+"up" = ["0x3fd659b781a9be00", "0x3fdbdec7eac3ee14"]  # 0.3492258802643562, 0.43547246862701283
+"absorption" = ["0x3fd711c33728f89c"]  # 0.3604591406509685
+"ground" = "0x3fd29485472d4963"  # 0.29031497908467524
+
+["Float64/passive/batch/single/mixed_bright_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3fe6666666666666", "0x3fdbde0f02333f10"]  # 0.7, 0.43542838301526476
+"down" = ["0x3fd3333333333333", "0x3fd2953e2fbdf868"]  # 0.3, 0.29035906469642336
+"up" = ["0x3fd659b781a9be00", "0x3fdbdec7eac3ee14"]  # 0.3492258802643562, 0.43547246862701283
+"absorption" = ["0x3fd711c33728f89c"]  # 0.3604591406509685
+"ground" = "0x3fd29485472d4963"  # 0.29031497908467524
+
+["Float64/passive/tuple/stack/direct_only_dark_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3ff0000000000000", "0x3feefa0a377a3761", "0x3feefa0a377a3761", "0x3fd7b8b63427b3d7"]  # 1.0, 0.968022449831306, 0.968022449831306, 0.3706489095046072
+"down" = ["0x0000000000000000", "0x3f6f75517e66c34e", "0x3f6f75517e66c34e", "0x3fd562565dfe996c"]  # 0.0, 0.0038401214289582103, 0.0038401214289582103, 0.33412703684952905
+"up" = ["0x3fd65fe5bdbdd7cd", "0x3fd68197d902bb01", "0x3fd68197d902bb01", "0x3fb5a69564df2f53"]  # 0.34960311440897557, 0.35165973846862647, 0.35165973846862647, 0.08457311356249635
+"absorption" = ["0x3f9eeb30953a6e90", "0xbca8000000000000", "0xbce4000000000000"]  # 0.030194052799386528, -1.6653345369377348e-16, -2.220446049250313e-15
+"ground" = "0x3fe3d8b39c7740b8"  # 0.62020283279164
+
+["Float64/passive/vector/stack/direct_only_dark_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3ff0000000000000", "0x3feefa0a377a3761", "0x3feefa0a377a3761", "0x3fd7b8b63427b3d7"]  # 1.0, 0.968022449831306, 0.968022449831306, 0.3706489095046072
+"down" = ["0x0000000000000000", "0x3f6f75517e66c34e", "0x3f6f75517e66c34e", "0x3fd562565dfe996c"]  # 0.0, 0.0038401214289582103, 0.0038401214289582103, 0.33412703684952905
+"up" = ["0x3fd65fe5bdbdd7cd", "0x3fd68197d902bb01", "0x3fd68197d902bb01", "0x3fb5a69564df2f53"]  # 0.34960311440897557, 0.35165973846862647, 0.35165973846862647, 0.08457311356249635
+"absorption" = ["0x3f9eeb30953a6e90", "0xbca8000000000000", "0xbce4000000000000"]  # 0.030194052799386528, -1.6653345369377348e-16, -2.220446049250313e-15
+"ground" = "0x3fe3d8b39c7740b8"  # 0.62020283279164
+
+["Float64/passive/tuple/stack/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x0000000000000000", "0x0000000000000000", "0x0000000000000000", "0x0000000000000000"]  # 0.0, 0.0, 0.0, 0.0
+"down" = ["0x3ff0000000000000", "0x3fefb10ac332b9c2", "0x3fefb10ac332b9c2", "0x3fe13943110adf76"]  # 1.0, 0.9903615772689636, 0.9903615772689636, 0.5382399876461779
+"up" = ["0x3fdcdbb52b7e3f72", "0x3fdcef8f644fb4d4", "0x3fdcef8f644fb4d4", "0x0000000000000000"]  # 0.45090989348772503, 0.45212158962278903, 0.45212158962278903, 0.0
+"absorption" = ["0x3f8638964d803bc0", "0x0000000000000000", "0xbcee000000000000"]  # 0.010850118866100433, 0.0, -3.3306690738754696e-15
+"ground" = "0x3fe13943110adf76"  # 0.5382399876461779
+
+["Float64/passive/vector/stack/diffuse_only_black_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x0000000000000000", "0x0000000000000000", "0x0000000000000000", "0x0000000000000000"]  # 0.0, 0.0, 0.0, 0.0
+"down" = ["0x3ff0000000000000", "0x3fefb10ac332b9c2", "0x3fefb10ac332b9c2", "0x3fe13943110adf76"]  # 1.0, 0.9903615772689636, 0.9903615772689636, 0.5382399876461779
+"up" = ["0x3fdcdbb52b7e3f72", "0x3fdcef8f644fb4d4", "0x3fdcef8f644fb4d4", "0x0000000000000000"]  # 0.45090989348772503, 0.45212158962278903, 0.45212158962278903, 0.0
+"absorption" = ["0x3f8638964d803bc0", "0x0000000000000000", "0xbcee000000000000"]  # 0.010850118866100433, 0.0, -3.3306690738754696e-15
+"ground" = "0x3fe13943110adf76"  # 0.5382399876461779
+
+["Float64/passive/tuple/stack/mixed_bright_soil"]
+entry_points = ["solve_column(::Tuple)"]
+"direct" = ["0x3fe6666666666666", "0x3fe5af0726d58d2a", "0x3fe5af0726d58d2a", "0x3fd09ae5f14efde3"]  # 0.7, 0.6776157148819142, 0.6776157148819142, 0.25945423665322503
+"down" = ["0x3fd3333333333333", "0x3fd34017ff16dea1", "0x3fd34017ff16dea1", "0x3fe363950a23dea5"]  # 0.3, 0.30078697119777514, 0.30078697119777514, 0.6059060285615102
+"up" = ["0x3fe4153f2f211385", "0x3fe43b7658760a64", "0x3fe43b7658760a64", "0x3fe09d6b34e06b5a"]  # 0.6275936050884502, 0.6322585799937994, 0.6322585799937994, 0.5192161591288411
+"absorption" = ["0x3f9ae4805e7f4ca0", "0x0000000000000000", "0xbcf3000000000000"]  # 0.026262288825659952, 0.0, -4.218847493575595e-15
+"ground" = "0x3fd627399bd5e478"  # 0.3461441060858941
+
+["Float64/passive/vector/stack/mixed_bright_soil"]
+entry_points = ["solve_column(::Vector)", "solve_column!(::ColumnFluxWorkspace)"]
+"direct" = ["0x3fe6666666666666", "0x3fe5af0726d58d2a", "0x3fe5af0726d58d2a", "0x3fd09ae5f14efde3"]  # 0.7, 0.6776157148819142, 0.6776157148819142, 0.25945423665322503
+"down" = ["0x3fd3333333333333", "0x3fd34017ff16dea1", "0x3fd34017ff16dea1", "0x3fe363950a23dea5"]  # 0.3, 0.30078697119777514, 0.30078697119777514, 0.6059060285615102
+"up" = ["0x3fe4153f2f211385", "0x3fe43b7658760a64", "0x3fe43b7658760a64", "0x3fe09d6b34e06b5a"]  # 0.6275936050884502, 0.6322585799937994, 0.6322585799937994, 0.5192161591288411
+"absorption" = ["0x3f9ae4805e7f4ca0", "0x0000000000000000", "0xbcf3000000000000"]  # 0.026262288825659952, 0.0, -4.218847493575595e-15
+"ground" = "0x3fd627399bd5e478"  # 0.3461441060858941
+
+["Float64/passive/batch/stack/direct_only_dark_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3ff0000000000000", "0x3feefa0a377a3761", "0x3feefa0a377a3761", "0x3fd7b8b63427b3d7"]  # 1.0, 0.968022449831306, 0.968022449831306, 0.3706489095046072
+"down" = ["0x0000000000000000", "0x3f6f75517e66c34e", "0x3f6f75517e66c34e", "0x3fd562565dfe996c"]  # 0.0, 0.0038401214289582103, 0.0038401214289582103, 0.33412703684952905
+"up" = ["0x3fd65fe5bdbdd7cd", "0x3fd68197d902bb01", "0x3fd68197d902bb01", "0x3fb5a69564df2f53"]  # 0.34960311440897557, 0.35165973846862647, 0.35165973846862647, 0.08457311356249635
+"absorption" = ["0x3f9eeb30953a6e90", "0xbca8000000000000", "0xbce4000000000000"]  # 0.030194052799386528, -1.6653345369377348e-16, -2.220446049250313e-15
+"ground" = "0x3fe3d8b39c7740b8"  # 0.62020283279164
+
+["Float64/passive/batch/stack/diffuse_only_black_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x0000000000000000", "0x0000000000000000", "0x0000000000000000", "0x0000000000000000"]  # 0.0, 0.0, 0.0, 0.0
+"down" = ["0x3ff0000000000000", "0x3fefb10ac332b9c2", "0x3fefb10ac332b9c2", "0x3fe13943110adf76"]  # 1.0, 0.9903615772689636, 0.9903615772689636, 0.5382399876461779
+"up" = ["0x3fdcdbb52b7e3f72", "0x3fdcef8f644fb4d4", "0x3fdcef8f644fb4d4", "0x0000000000000000"]  # 0.45090989348772503, 0.45212158962278903, 0.45212158962278903, 0.0
+"absorption" = ["0x3f8638964d803bc0", "0x0000000000000000", "0xbcee000000000000"]  # 0.010850118866100433, 0.0, -3.3306690738754696e-15
+"ground" = "0x3fe13943110adf76"  # 0.5382399876461779
+
+["Float64/passive/batch/stack/mixed_bright_soil"]
+entry_points = ["batch_solve_columns!"]
+"direct" = ["0x3fe6666666666666", "0x3fe5af0726d58d2a", "0x3fe5af0726d58d2a", "0x3fd09ae5f14efde3"]  # 0.7, 0.6776157148819142, 0.6776157148819142, 0.25945423665322503
+"down" = ["0x3fd3333333333333", "0x3fd34017ff16dea1", "0x3fd34017ff16dea1", "0x3fe363950a23dea5"]  # 0.3, 0.30078697119777514, 0.30078697119777514, 0.6059060285615102
+"up" = ["0x3fe4153f2f211385", "0x3fe43b7658760a64", "0x3fe43b7658760a64", "0x3fe09d6b34e06b5a"]  # 0.6275936050884502, 0.6322585799937994, 0.6322585799937994, 0.5192161591288411
+"absorption" = ["0x3f9ae4805e7f4ca0", "0x0000000000000000", "0xbcf3000000000000"]  # 0.026262288825659952, 0.0, -4.218847493575595e-15
+"ground" = "0x3fd627399bd5e478"  # 0.3461441060858941
+
+["Float64/emitting_layer/generic_moderate/none"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3fb417bac2caa340"  # 0.0784870839658085
+"passive.transmission" = "0x3fe7d62144ebb28e"  # 0.7448889108760157
+"passive.beam_up" = "0x0000000000000000"  # 0.0
+"passive.beam_down" = "0x0000000000000000"  # 0.0
+"passive.beam_transmission" = "0x3ff0000000000000"  # 1.0
+"upward" = "0x0000000000000000"  # 0.0
+"downward" = "0x0000000000000000"  # 0.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting_layer/generic_moderate/uniform"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3fb417bac2caa340"  # 0.0784870839658085
+"passive.transmission" = "0x3fe7d62144ebb28e"  # 0.7448889108760157
+"passive.beam_up" = "0x0000000000000000"  # 0.0
+"passive.beam_down" = "0x0000000000000000"  # 0.0
+"passive.beam_transmission" = "0x3ff0000000000000"  # 1.0
+"upward" = "0x4064930f88027abf"  # 164.5956459091594
+"downward" = "0x4063e6e1870b2f64"  # 159.21503021416277
+"generated" = "0x4076580000000000"  # 357.5
+
+["Float64/emitting_layer/generic_moderate/quadrature"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3fb417bac2caa340"  # 0.0784870839658085
+"passive.transmission" = "0x3fe7d62144ebb28e"  # 0.7448889108760157
+"passive.beam_up" = "0x0000000000000000"  # 0.0
+"passive.beam_down" = "0x0000000000000000"  # 0.0
+"passive.beam_transmission" = "0x3ff0000000000000"  # 1.0
+"upward" = "0x4066227d7ef8cfaa"  # 177.07781933399139
+"downward" = "0x4064b3e82a3fdbf5"  # 165.6220904586077
+"generated" = "0x4077a4cccccccccd"  # 378.3
+
+["Float64/emitting_layer/conservative_moderate/uniform"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3fdd37a6f4de9bd4"  # 0.4565217391304348
+"passive.transmission" = "0x3fe1642c8590b217"  # 0.5434782608695653
+"passive.beam_up" = "0x0000000000000000"  # 0.0
+"passive.beam_down" = "0x0000000000000000"  # 0.0
+"passive.beam_transmission" = "0x3ff0000000000000"  # 1.0
+"upward" = "0x4074d42c8590b216"  # 333.2608695652174
+"downward" = "0x40746bd37a6f4dea"  # 326.7391304347826
+"generated" = "0x4084a00000000000"  # 660.0
+
+["Float64/emitting_layer/generic_zero/quadrature"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x0000000000000000"  # 0.0
+"passive.transmission" = "0x3ff0000000000000"  # 1.0
+"passive.beam_up" = "0x0000000000000000"  # 0.0
+"passive.beam_down" = "0x0000000000000000"  # 0.0
+"passive.beam_transmission" = "0x3ff0000000000000"  # 1.0
+"upward" = "0x0000000000000000"  # 0.0
+"downward" = "0x0000000000000000"  # 0.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting_layer/strong_absorption_thick/uniform"]
+entry_points = ["emitting_layer"]
+"passive.reflection" = "0x3f9c77410b417837"  # 0.027798668205257306
+"passive.transmission" = "0x3f72a3f332b4986d"  # 0.004550886146978167
+"passive.beam_up" = "0x0000000000000000"  # 0.0
+"passive.beam_down" = "0x0000000000000000"  # 0.0
+"passive.beam_transmission" = "0x3ff0000000000000"  # 1.0
+"upward" = "0x4063e72eab98e8b8"  # 159.22444705834437
+"downward" = "0x40633ad888cb3f7c"  # 153.8389324159324
+"generated" = "0x4099c80000000000"  # 1650.0
+
+["Float64/emitting/tuple/empty/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x4073600000000000"]  # 310.0
+"up" = ["0x407939999999999a"]  # 403.6
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0xc057666666666668"  # -93.60000000000002
+"ground_absorbed" = "0x4072366666666666"  # 291.4
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting/vector/empty/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x4073600000000000"]  # 310.0
+"up" = ["0x407939999999999a"]  # 403.6
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0xc057666666666668"  # -93.60000000000002
+"ground_absorbed" = "0x4072366666666666"  # 291.4
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emission_only/tuple/empty/sky_and_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x0000000000000000"]  # 0.0
+"up" = ["0x0000000000000000"]  # 0.0
+"absorption" = []  # empty
+"ground" = "0x0000000000000000"  # 0.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emission_only/vector/empty/sky_and_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x0000000000000000"]  # 0.0
+"up" = ["0x0000000000000000"]  # 0.0
+"absorption" = []  # empty
+"ground" = "0x0000000000000000"  # 0.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting/tuple/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x406f400000000000"]  # 250.0
+"up" = ["0x4052c00000000000"]  # 75.0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0x4065e00000000000"  # 175.0
+"ground_absorbed" = "0x4065e00000000000"  # 175.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting/vector/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x406f400000000000"]  # 250.0
+"up" = ["0x4052c00000000000"]  # 75.0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0x4065e00000000000"  # 175.0
+"ground_absorbed" = "0x4065e00000000000"  # 175.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emission_only/tuple/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x0000000000000000"]  # 0.0
+"up" = ["0x0000000000000000"]  # 0.0
+"absorption" = []  # empty
+"ground" = "0x0000000000000000"  # 0.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emission_only/vector/empty/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x0000000000000000"]  # 0.0
+"up" = ["0x0000000000000000"]  # 0.0
+"absorption" = []  # empty
+"ground" = "0x0000000000000000"  # 0.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting/batch/empty/sky_and_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x4073600000000000"]  # 310.0
+"up" = ["0x407939999999999a"]  # 403.6
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0xc057666666666668"  # -93.60000000000002
+"ground_absorbed" = "0x4072366666666666"  # 291.4
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting/batch/empty/sky_only_reflective_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x406f400000000000"]  # 250.0
+"up" = ["0x4052c00000000000"]  # 75.0
+"net_layer" = []  # empty
+"absorption" = []  # empty
+"net_soil" = "0x4065e00000000000"  # 175.0
+"ground_absorbed" = "0x4065e00000000000"  # 175.0
+"generated" = "0x0000000000000000"  # 0.0
+
+["Float64/emitting/tuple/single/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x4073600000000000", "0x407a656459fe4eb5"]  # 310.0, 422.33699988688323
+"up" = ["0x407ee95a3336d6a2", "0x4079a5718a8504b9"]  # 494.58452149792913, 410.340219993213
+"net_layer" = ["0xc068929a0560413c"]  # -196.58130139159937
+"absorption" = ["0x40641d65fa9fbec4"]  # 160.91869860840063
+"net_soil" = "0x4027fe59ef293f80"  # 11.996779893670237
+"ground_absorbed" = "0x4078cff2cf7949fc"  # 396.99677989367024
+"generated" = "0x4076580000000000"  # 357.5
+
+["Float64/emitting/vector/single/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x4073600000000000", "0x407a656459fe4eb5"]  # 310.0, 422.33699988688323
+"up" = ["0x407ee95a3336d6a2", "0x4079a5718a8504b9"]  # 494.58452149792913, 410.340219993213
+"net_layer" = ["0xc068929a0560413c"]  # -196.58130139159937
+"absorption" = ["0x40641d65fa9fbec4"]  # 160.91869860840063
+"net_soil" = "0x4027fe59ef293f80"  # 11.996779893670237
+"ground_absorbed" = "0x4078cff2cf7949fc"  # 396.99677989367024
+"generated" = "0x4076580000000000"  # 357.5
+
+["Float64/emission_only/tuple/single/sky_and_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x0000000000000000", "0x4063fefcc840f8f8"]  # 0.0, 159.96835720720242
+"up" = ["0x406577d864c18080", "0x4023323a59d7f940"]  # 171.7451652316413, 9.598101432432145
+"absorption" = ["0x4041b139e26c1870"]  # 35.384578993588434
+"ground" = "0x4062cbd922a37964"  # 150.37025577477027
+"generated" = "0x4076580000000000"  # 357.5
+
+["Float64/emission_only/vector/single/sky_and_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x0000000000000000", "0x4063fefcc840f8f8"]  # 0.0, 159.96835720720242
+"up" = ["0x406577d864c18080", "0x4023323a59d7f940"]  # 171.7451652316413, 9.598101432432145
+"absorption" = ["0x4041b139e26c1870"]  # 35.384578993588434
+"ground" = "0x4062cbd922a37964"  # 150.37025577477027
+"generated" = "0x4076580000000000"  # 357.5
+
+["Float64/emitting/batch/single/sky_and_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x4073600000000000", "0x407a656459fe4eb5"]  # 310.0, 422.33699988688323
+"up" = ["0x407ee95a3336d6a2", "0x4079a5718a8504b9"]  # 494.58452149792913, 410.340219993213
+"net_layer" = ["0xc068929a0560413c"]  # -196.58130139159937
+"absorption" = ["0x40641d65fa9fbec4"]  # 160.91869860840063
+"net_soil" = "0x4027fe59ef293f80"  # 11.996779893670237
+"ground_absorbed" = "0x4078cff2cf7949fc"  # 396.99677989367024
+"generated" = "0x4076580000000000"  # 357.5
+
+["Float64/emitting/tuple/stack/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x4073600000000000", "0x407c501c046e380d", "0x407c501c046e380d", "0x408871e76e896908"]  # 310.0, 453.00684016279484, 453.00684016279484, 782.238003800886
+"up" = ["0x40888d46982efef2", "0x408908d32eca6c80", "0x408908d32eca6c80", "0x407afef2cfd30c9a"]  # 785.6594699546388, 801.1031165899622, 801.1031165899622, 431.9342802280531
+"net_layer" = ["0xc05fe40b5cdd73c4", "0x0000000000000000", "0xc085d33333333334"]  # -127.56319352747147, 0.0, -698.4000000000001
+"absorption" = ["0x406cbdfa5191461e", "0x0000000000000000", "0xbd50000000000000"]  # 229.93680647252853, 0.0, -2.2737367544323206e-13
+"net_soil" = "0x4075e4dc0d3fc576"  # 350.30372357283284
+"ground_absorbed" = "0x4086fa6e069fe2ba"  # 735.3037235728327
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emitting/vector/stack/sky_and_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x4073600000000000", "0x407c501c046e380d", "0x407c501c046e380d", "0x408871e76e896908"]  # 310.0, 453.00684016279484, 453.00684016279484, 782.238003800886
+"up" = ["0x40888d46982efef2", "0x408908d32eca6c80", "0x408908d32eca6c80", "0x407afef2cfd30c9a"]  # 785.6594699546388, 801.1031165899622, 801.1031165899622, 431.9342802280531
+"net_layer" = ["0xc05fe40b5cdd73c4", "0x0000000000000000", "0xc085d33333333334"]  # -127.56319352747147, 0.0, -698.4000000000001
+"absorption" = ["0x406cbdfa5191461e", "0x0000000000000000", "0xbd50000000000000"]  # 229.93680647252853, 0.0, -2.2737367544323206e-13
+"net_soil" = "0x4075e4dc0d3fc576"  # 350.30372357283284
+"ground_absorbed" = "0x4086fa6e069fe2ba"  # 735.3037235728327
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emission_only/tuple/stack/sky_and_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x0000000000000000", "0x406873b225c02e04", "0x406873b225c02e04", "0x407c9b3779afd500"]  # 0.0, 195.61549651656253, 195.61549651656253, 457.70104378399265
+"up" = ["0x407fe0ec0cba3404", "0x407cfc6c9b5ea5d5", "0x407cfc6c9b5ea5d5", "0x403b7649bc7fd6b8"]  # 510.0576293252527, 463.7765153596095, 463.7765153596095, 27.462062627039558
+"absorption" = ["0x405ce69def116b3c", "0x0000000000000000", "0xbd50000000000000"]  # 115.60338951779426, 0.0, -2.2737367544323206e-13
+"ground" = "0x407ae3d2dde7d794"  # 430.23898115695306
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emission_only/vector/stack/sky_and_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x0000000000000000", "0x406873b225c02e04", "0x406873b225c02e04", "0x407c9b3779afd500"]  # 0.0, 195.61549651656253, 195.61549651656253, 457.70104378399265
+"up" = ["0x407fe0ec0cba3404", "0x407cfc6c9b5ea5d5", "0x407cfc6c9b5ea5d5", "0x403b7649bc7fd6b8"]  # 510.0576293252527, 463.7765153596095, 463.7765153596095, 27.462062627039558
+"absorption" = ["0x405ce69def116b3c", "0x0000000000000000", "0xbd50000000000000"]  # 115.60338951779426, 0.0, -2.2737367544323206e-13
+"ground" = "0x407ae3d2dde7d794"  # 430.23898115695306
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emitting/tuple/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Tuple)"]
+"down" = ["0x406f400000000000", "0x4078c1089815edc0", "0x4078c1089815edc0", "0x40841046ca24433e"]  # 250.0, 396.0645981651869, 396.0645981651869, 642.0345652421017
+"up" = ["0x4084c59b5c6036b4", "0x40842852be8b2e35", "0x40842852be8b2e35", "0x4068138825c51d7d"]  # 664.700859786672, 645.0404024957157, 645.0404024957157, 192.6103695726305
+"net_layer" = ["0xc064b733a77ffd7c", "0x0000000000000000", "0xc085d33333333334"]  # -165.7250554561432, 0.0, -698.4000000000001
+"absorption" = ["0x4067f8cc58800284", "0x0000000000000000", "0xbd50000000000000"]  # 191.7749445438568, 0.0, -2.2737367544323206e-13
+"net_soil" = "0x407c16c98165f7be"  # 449.42419566947126
+"ground_absorbed" = "0x407c16c98165f7bd"  # 449.4241956694712
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emitting/vector/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emitting_column(::Vector)", "solve_emitting_column!(::EmittingColumnWorkspace)"]
+"down" = ["0x406f400000000000", "0x4078c1089815edc0", "0x4078c1089815edc0", "0x40841046ca24433e"]  # 250.0, 396.0645981651869, 396.0645981651869, 642.0345652421017
+"up" = ["0x4084c59b5c6036b4", "0x40842852be8b2e35", "0x40842852be8b2e35", "0x4068138825c51d7d"]  # 664.700859786672, 645.0404024957157, 645.0404024957157, 192.6103695726305
+"net_layer" = ["0xc064b733a77ffd7c", "0x0000000000000000", "0xc085d33333333334"]  # -165.7250554561432, 0.0, -698.4000000000001
+"absorption" = ["0x4067f8cc58800284", "0x0000000000000000", "0xbd50000000000000"]  # 191.7749445438568, 0.0, -2.2737367544323206e-13
+"net_soil" = "0x407c16c98165f7be"  # 449.42419566947126
+"ground_absorbed" = "0x407c16c98165f7bd"  # 449.4241956694712
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emission_only/tuple/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Tuple)"]
+"down" = ["0x0000000000000000", "0x40692968535cdae1", "0x40692968535cdae1", "0x40803b107a3db59b"]  # 0.0, 201.29398506294004, 201.29398506294004, 519.383045656304
+"up" = ["0x40819f994a4921a7", "0x4080c101bf459e00", "0x4080c101bf459e00", "0x40637a13c5e3a6ba"]  # 563.9498487199206, 536.1258531035273, 536.1258531035273, 155.8149136968912
+"absorption" = ["0x40600c3980951684", "0x0000000000000000", "0xbd50000000000000"]  # 128.3820193206667, 0.0, -2.2737367544323206e-13
+"ground" = "0x4076b917118997d9"  # 363.5681319594128
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emission_only/vector/stack/sky_only_reflective_soil"]
+entry_points = ["solve_emission(::Vector)"]
+"down" = ["0x0000000000000000", "0x40692968535cdae1", "0x40692968535cdae1", "0x40803b107a3db59b"]  # 0.0, 201.29398506294004, 201.29398506294004, 519.383045656304
+"up" = ["0x40819f994a4921a7", "0x4080c101bf459e00", "0x4080c101bf459e00", "0x40637a13c5e3a6ba"]  # 563.9498487199206, 536.1258531035273, 536.1258531035273, 155.8149136968912
+"absorption" = ["0x40600c3980951684", "0x0000000000000000", "0xbd50000000000000"]  # 128.3820193206667, 0.0, -2.2737367544323206e-13
+"ground" = "0x4076b917118997d9"  # 363.5681319594128
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emitting/batch/stack/sky_and_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x4073600000000000", "0x407c501c046e380d", "0x407c501c046e380d", "0x408871e76e896908"]  # 310.0, 453.00684016279484, 453.00684016279484, 782.238003800886
+"up" = ["0x40888d46982efef2", "0x408908d32eca6c80", "0x408908d32eca6c80", "0x407afef2cfd30c9a"]  # 785.6594699546388, 801.1031165899622, 801.1031165899622, 431.9342802280531
+"net_layer" = ["0xc05fe40b5cdd73c4", "0x0000000000000000", "0xc085d33333333334"]  # -127.56319352747147, 0.0, -698.4000000000001
+"absorption" = ["0x406cbdfa5191461e", "0x0000000000000000", "0xbd50000000000000"]  # 229.93680647252853, 0.0, -2.2737367544323206e-13
+"net_soil" = "0x4075e4dc0d3fc576"  # 350.30372357283284
+"ground_absorbed" = "0x4086fa6e069fe2ba"  # 735.3037235728327
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/emitting/batch/stack/sky_only_reflective_soil"]
+entry_points = ["batch_solve_emitting_columns!"]
+"down" = ["0x406f400000000000", "0x4078c1089815edc0", "0x4078c1089815edc0", "0x40841046ca24433e"]  # 250.0, 396.0645981651869, 396.0645981651869, 642.0345652421017
+"up" = ["0x4084c59b5c6036b4", "0x40842852be8b2e35", "0x40842852be8b2e35", "0x4068138825c51d7d"]  # 664.700859786672, 645.0404024957157, 645.0404024957157, 192.6103695726305
+"net_layer" = ["0xc064b733a77ffd7c", "0x0000000000000000", "0xc085d33333333334"]  # -165.7250554561432, 0.0, -698.4000000000001
+"absorption" = ["0x4067f8cc58800284", "0x0000000000000000", "0xbd50000000000000"]  # 191.7749445438568, 0.0, -2.2737367544323206e-13
+"net_soil" = "0x407c16c98165f7be"  # 449.42419566947126
+"ground_absorbed" = "0x407c16c98165f7bd"  # 449.4241956694712
+"generated" = "0x40907f9999999999"  # 1055.8999999999999
+
+["Float64/point_emission_response/observer_above"]
+entry_points = ["point_emission_response"]
+"upward" = "0x3fd74e7ad1e05a8d"  # 0.36416502471676254
+"downward" = "0x3fd40d618f02cb0c"  # 0.31331671682271245
+"up_at_source" = "0x3fdaba29893971a8"  # 0.41761244202441583
+"down_at_source" = "0x3fd7859739ffbb16"  # 0.36752873100242434
+
+["Float64/point_emission_interior/observer_above"]
+entry_points = ["point_emission_interior"]
+"down" = "0x3f7dd8cb3a0715db"  # 0.007286828855688178
+"up" = "0x3fd8ae64046885c7"  # 0.38564396315095134
+
+["Float64/point_emission_response/observer_at_source"]
+entry_points = ["point_emission_response"]
+"upward" = "0x3fd74e7ad1e05a8d"  # 0.36416502471676254
+"downward" = "0x3fd40d618f02cb0c"  # 0.31331671682271245
+"up_at_source" = "0x3fdaba29893971a8"  # 0.41761244202441583
+"down_at_source" = "0x3fd7859739ffbb16"  # 0.36752873100242434
+
+["Float64/point_emission_interior/observer_at_source"]
+entry_points = ["point_emission_interior"]
+"down" = "0x3f91f30d39954afb"  # 0.01752873100242434
+"up" = "0x3fdaba29893971a8"  # 0.41761244202441583
+
+["Float64/point_emission_response/observer_below"]
+entry_points = ["point_emission_response"]
+"upward" = "0x3fd90b21642c8591"  # 0.391304347826087
+"downward" = "0x3fda2811cf06ada4"  # 0.4086956521739131
+"up_at_source" = "0x3fe07751798b5a61"  # 0.5145652173913043
+"down_at_source" = "0x3fe3f1c0c7751799"  # 0.6232608695652174
+
+["Float64/point_emission_interior/observer_below"]
+entry_points = ["point_emission_interior"]
+"down" = "0x3fe0484da55a8ea6"  # 0.5088260869565218
+"up" = "0x3fb9a225eeb9bea4"  # 0.10013043478260869
+
+["Float64/emission_interior/none_upper"]
+entry_points = ["emission_interior"]
+"down" = "0x4071cdb810537696"  # 284.8574374447138
+"up" = "0x40733a24e7560e1c"  # 307.6340096818474
+
+["Float64/emission_interior/uniform_lower"]
+entry_points = ["emission_interior"]
+"down" = "0x40785187184c9256"  # 389.0954821578101
+"up" = "0x40781dbf6729f97e"  # 385.8592292441971
+
+["Float64/emission_interior/quadrature_middle"]
+entry_points = ["emission_interior"]
+"down" = "0x4074847e93a4b265"  # 328.2809025224181
+"up" = "0x407cd0cae108ab9d"  # 461.0495310152708
+
+["Float64/emission_interior/quadrature_conservative"]
+entry_points = ["emission_interior"]
+"down" = "0x40834a25a488991c"  # 617.2683802291608
+"up" = "0x407ec5bf229c7b1a"  # 492.3591638672384
+
+["Float64/hemispheric_moment/scalar/lambertian"]
+entry_points = ["hemispheric_moment", "hemispheric_source_moments!"]
+"plus" = ["0x3fe33b645a1cac08", "0x3fd44189374bc6a8", "0x3fdc666666666666", "0x3fd10e5604189374"]  # 0.601, 0.3165, 0.44375, 0.26649999999999996
+"minus" = ["0x3fd322d0e5604189", "0x3fc116872b020c4a", "0x3fe0d70a3d70a3d7", "0x3fd1810624dd2f1b"]  # 0.299, 0.1335, 0.52625, 0.2735
+
+["Float64/hemispheric_moment/batch/lambertian"]
+entry_points = ["batch_hemispheric_moments!"]
+"plus" = ["0x3fe33b645a1cac08", "0x3fd44189374bc6a8", "0x3fdc666666666666", "0x3fd10e5604189374", "0x3fdaf1a9fbe76c8b", "0x3fe5b851eb851eb8", "0x3fe2ef9db22d0e56", "0x3fe5c6a7ef9db22d"]  # 0.601, 0.3165, 0.44375, 0.26649999999999996, 0.421, 0.67875, 0.59175, 0.6805
+"minus" = ["0x3fd322d0e5604189", "0x3fc116872b020c4a", "0x3fe0d70a3d70a3d7", "0x3fd1810624dd2f1b", "0x3fdad0e560418937", "0x3fd2000000000000", "0x3fd0872b020c49bb", "0x3fd2872b020c49bb"]  # 0.299, 0.1335, 0.52625, 0.2735, 0.419, 0.28125, 0.25825000000000004, 0.28950000000000004
+
+["Float64/hemispheric_bin/scalar/lambertian"]
+entry_points = ["hemispheric_bin", "expand_hemispheric_source!"]
+"up" = ["0x3fd5123a29c779a6", "0x3fc629c779a6b50b", "0x3fd1e297396d0918", "0x3fc339c0ebedfa44"]  # 0.32923749999999996, 0.17315, 0.279455, 0.1502
+"down" = ["0x3fd45e69ad42c3ca", "0x3fc5096bb98c7e28", "0x3fd260956c0d6f54", "0x3fc3b645a1cac083"]  # 0.3182625, 0.16435, 0.287145, 0.154
+
+["Float64/hemispheric_bin/batch/lambertian"]
+entry_points = ["batch_expand_hemispheric_sources!"]
+"up" = ["0x3fd5123a29c779a6", "0x3fc629c779a6b50b", "0x3fd1e297396d0918", "0x3fc339c0ebedfa44"]  # 0.32923749999999996, 0.17315, 0.279455, 0.1502
+"down" = ["0x3fd45e69ad42c3ca", "0x3fc5096bb98c7e28", "0x3fd260956c0d6f54", "0x3fc3b645a1cac083"]  # 0.3182625, 0.16435, 0.287145, 0.154
+
+["Float64/hemispheric_moment/scalar/mixed"]
+entry_points = ["hemispheric_moment", "hemispheric_source_moments!"]
+"plus" = ["0x3fe1c84b5dcc63f1", "0x3fd27fcb923a29c8", "0x3fdd3126e978d4fe", "0x3fd11f8a0902de01"]  # 0.5557, 0.28905000000000003, 0.456125, 0.26755
+"minus" = ["0x3fd60902de00d1b7", "0x3fc49a027525460a", "0x3fe071a9fbe76c8b", "0x3fd16fd21ff2e48f"]  # 0.3443, 0.16094999999999998, 0.513875, 0.27245
+
+["Float64/hemispheric_moment/batch/mixed"]
+entry_points = ["batch_hemispheric_moments!"]
+"plus" = ["0x3fe1c84b5dcc63f1", "0x3fd27fcb923a29c8", "0x3fdd3126e978d4fe", "0x3fd11f8a0902de01", "0x3fdaecbfb15b5740", "0x3fe3cfdf3b645a1c", "0x3fe155cfaacd9e84", "0x3fe3e631f8a0902e"]  # 0.5557, 0.28905000000000003, 0.456125, 0.26755, 0.4207000000000001, 0.6191249999999999, 0.541725, 0.62185
+"minus" = ["0x3fd60902de00d1b7", "0x3fc49a027525460a", "0x3fe071a9fbe76c8b", "0x3fd16fd21ff2e48f", "0x3fdad5cfaacd9e83", "0x3fd5d0e560418938", "0x3fd3bac710cb295f", "0x3fd64816f0068db9"]  # 0.3443, 0.16094999999999998, 0.513875, 0.27245, 0.41929999999999995, 0.34087500000000004, 0.308275, 0.34815
+
+["Float64/hemispheric_bin/scalar/mixed"]
+entry_points = ["hemispheric_bin", "expand_hemispheric_source!"]
+"up" = ["0x3fd4f7414a4d2b2c", "0x3fc5fe86833c6003", "0x3fd1f57d5a9eb208", "0x3fc34c6e6d9be4ce"]  # 0.32759125, 0.17183, 0.28060850000000004, 0.15077000000000002
+"down" = ["0x3fd479628cbd1244", "0x3fc534acaff6d331", "0x3fd24daf4adbc665", "0x3fc3a398201cd5fa"]  # 0.31990874999999996, 0.16567, 0.2859915, 0.15343
+
+["Float64/hemispheric_bin/batch/mixed"]
+entry_points = ["batch_expand_hemispheric_sources!"]
+"up" = ["0x3fd4f7414a4d2b2c", "0x3fc5fe86833c6003", "0x3fd1f57d5a9eb208", "0x3fc34c6e6d9be4ce"]  # 0.32759125, 0.17183, 0.28060850000000004, 0.15077000000000002
+"down" = ["0x3fd479628cbd1244", "0x3fc534acaff6d331", "0x3fd24daf4adbc665", "0x3fc3a398201cd5fa"]  # 0.31990874999999996, 0.16567, 0.2859915, 0.15343

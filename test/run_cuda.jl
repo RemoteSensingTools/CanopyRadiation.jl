@@ -218,3 +218,103 @@ CUDA.allowscalar(false)
         @test all(>(zero(FT)), Array(up_2d))
     end
 end
+
+# ---------------------------------------------------------------------------
+# CUDA batch kernels against the frozen v0.1.0 (33f015b) CPU record.
+#
+# The inputs come from test/frozen_record/inputs.toml and the reference values
+# from test/frozen_record/reference.toml (CPU, KernelAbstractions batch path).
+# The reference must NOT be regenerated from refactored code. GPU code may
+# contract a * b + c into a fused multiply-add, so the comparison uses an
+# explicit tolerance. The error of a value is measured in units of
+# eps(FT) * scale, where scale is the largest magnitude in the same reference
+# table (column flux scale); this keeps cancellation-dominated quantities such
+# as near-zero layer absorption meaningful. For information the script also
+# prints the largest deviation in eps of the value itself, over values with
+# magnitude >= scale / 1024 (smaller values are cancellation residues, e.g. the
+# -4e-15 absorption of a conservative layer), and the number of values that are
+# not bit-identical.
+# ---------------------------------------------------------------------------
+isdefined(@__MODULE__, :FrozenRecord) || include(joinpath(@__DIR__, "frozen_record", "compute.jl"))
+
+# Measured on 2x NVIDIA L40S (CUDA.jl 5.11.3, Julia 1.12.6): max 0.97 eps(FT)*scale
+# (Float32 emitting), 0.71 (passive); Float64 hemispheric kernels bit-identical.
+const CUDA_RECORD_TOL_EPS = 4.0
+
+function cuda_record_deviation(ref_table, got::NamedTuple, ::Type{FT}) where {FT}
+    expected = Dict(f => FT[FrozenRecord.from_hex(FT, s) for s in (v isa AbstractString ? [v] : v)]
+                    for (f, v) in ref_table if !(f in FrozenRecord.METADATA_FIELDS))
+    keys(expected) == Set(string.(keys(got))) || error("field sets differ: $(keys(expected)) vs $(keys(got))")
+    scale = maximum((maximum(abs, v; init = zero(FT)) for v in values(expected)); init = zero(FT))
+    scale > zero(FT) || (scale = one(FT))
+    worst_scaled, worst_rel, n_diff = 0.0, 0.0, 0
+    for (f, g) in pairs(got)
+        r = expected[string(f)]
+        gv = g isa AbstractArray ? vec(g) : [g]
+        length(gv) == length(r) || error("field $f length differs")
+        for i in eachindex(r, gv)
+            d = Float64(abs(gv[i] - r[i]))
+            worst_scaled = max(worst_scaled, d / Float64(eps(FT) * scale))
+            n_diff += gv[i] !== r[i]
+            abs(r[i]) >= scale / 1024 && (worst_rel = max(worst_rel, FrozenRecord.ulps_of_value(gv[i], r[i])))
+        end
+    end
+    return worst_scaled, worst_rel, n_diff
+end
+
+@testset "CUDA batch kernels vs frozen v0.1.0 (33f015b) CPU record, tolerance $(CUDA_RECORD_TOL_EPS) eps" begin
+    fx = FrozenRecord.load_fixture()
+    ref = FrozenRecord.load_reference()
+    to_gpu(x) = CuArray(x)
+    for pname in fx["precisions"]
+        FT = FrozenRecord.precision_type(pname)
+        groups = Dict{String,NTuple{4,Float64}}()
+        function track!(g, dev)
+            old = get(groups, g, (0.0, 0.0, 0.0, 0.0))
+            groups[g] = (max(old[1], dev[1]), max(old[2], dev[2]), old[3] + dev[3], old[4] + 1)
+        end
+        for col in fx["passive_columns"]
+            inp = FrozenRecord.passive_batch_inputs(FT, fx, col)
+            dir, dn, up, ab, gr = FrozenRecord.run_passive_batch(FT, inp, to_gpu, CUDA.zeros)
+            for (b, sname) in enumerate(col["scenarios"])
+                key = "$pname/passive/batch/$(col["name"])/$sname"
+                got = (; direct = dir[:, b], down = dn[:, b], up = up[:, b],
+                    absorption = ab[:, b], ground = gr[b])
+                dev = cuda_record_deviation(ref[key], got, FT)
+                track!("passive", dev)
+                @test dev[1] <= CUDA_RECORD_TOL_EPS
+            end
+        end
+        for col in fx["emitting_columns"]
+            inp = FrozenRecord.emitting_batch_inputs(FT, fx, col)
+            dn, up, net, ab, ns, ga, gen = FrozenRecord.run_emitting_batch(FT, inp, to_gpu, CUDA.zeros)
+            for (b, sname) in enumerate(col["scenarios"])
+                key = "$pname/emitting/batch/$(col["name"])/$sname"
+                got = (; down = dn[:, b], up = up[:, b], net_layer = net[:, b], absorption = ab[:, b],
+                    net_soil = ns[b], ground_absorbed = ga[b], generated = gen[b])
+                dev = cuda_record_deviation(ref[key], got, FT)
+                track!("emitting", dev)
+                @test dev[1] <= CUDA_RECORD_TOL_EPS
+            end
+        end
+        hin = FrozenRecord.hemispheric_inputs(FT, fx)
+        for lname in sort!(collect(keys(fx["hemispheric"]["laws"])))
+            law = FrozenRecord.law_of(FT, fx, lname)
+            pb, mb = FrozenRecord.run_batch_moments(FT, law, hin, to_gpu, CUDA.zeros)
+            dev = cuda_record_deviation(ref["$pname/hemispheric_moment/batch/$lname"], (; plus = pb, minus = mb), FT)
+            track!("hemispheric_moments", dev)
+            @test dev[1] <= CUDA_RECORD_TOL_EPS
+            p, m = FrozenRecord.scalar_moments(FT, law, hin.mu, hin.weighted[:, :, :, 1])
+            ub, db = FrozenRecord.run_batch_expand(FT, p, m, hin, to_gpu, CUDA.zeros)
+            dev = cuda_record_deviation(ref["$pname/hemispheric_bin/batch/$lname"], (; up = ub, down = db), FT)
+            track!("hemispheric_expand", dev)
+            @test dev[1] <= CUDA_RECORD_TOL_EPS
+        end
+        for g in sort!(collect(keys(groups)))
+            s, r, nd, nt = groups[g]
+            println("CUDA vs frozen CPU record, $pname $g ($(Int(nt)) tables): max deviation ",
+                "$(round(s; digits = 3)) eps(FT)*table scale; max $(r) eps of value (|value| >= scale/1024); ",
+                "$(Int(nd)) value(s) not bit-identical")
+        end
+    end
+end

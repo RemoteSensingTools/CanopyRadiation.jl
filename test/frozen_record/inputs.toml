@@ -1,0 +1,406 @@
+# CanopyRadiation frozen numerical record: input fixture.
+#
+# Read by test/frozen_record/compute.jl, which is shared by the generator
+# (test/frozen_record/generate.jl), the CPU test (test/frozen_record.jl) and the
+# opt-in CUDA script (test/run_cuda.jl). Changing any value here invalidates
+# reference.toml: inputs and reference were frozen together from v0.1.0 (33f015b).
+#
+# These are MANUFACTURED test inputs chosen to drive the solvers through their
+# numerical regimes (zero-LAI layers, thin layers on the small-q series branch,
+# optically thick layers, conservative scattering, near-resonant beam
+# extinction, black and bright soil, direct-only / diffuse-only / mixed
+# illumination). They are NOT a canopy parameterization and carry no physical
+# calibration.
+#
+# Every number is written as a decimal Float64 literal (integers are only used
+# for counts and shapes). For each precision FT in `precisions`, a value is read
+# as Float64 by the TOML parser and then rounded once with FT(x); that
+# conversion is part of the record definition.
+#
+# Units
+#   rates.* (absorption, backscatter, beam_up, beam_down, extinction):
+#       per unit one-sided leaf area index, (m2 leaf / m2 ground)^-1
+#   lai, x, source_depth:         one-sided leaf area index, m2 leaf / m2 ground
+#   passive_scenarios direct/diffuse: horizontal flux, normalized (dimensionless)
+#   soil, soil_reflect:           Lambertian soil reflectance, dimensionless in [0, 1]
+#   interior_flux down_top/up_bottom/beam_top: normalized flux (dimensionless)
+#   emitting down_top, up_bottom, soil_emit: W m-2
+#   emissions upward/downward:    W m-2 per unit LAI (uniform) or source density
+#                                 per unit LAI at each quadrature depth
+#   emissions depths:             fraction of layer LAI in [0, 1]; weights dimensionless
+#   point_emission upward/downward: integrated planar source, W m-2
+#   hemispheric mu:               leaf-normal cosine in [-1, 1], dimensionless
+#   hemispheric weighted/front/back: arbitrary photon units (dimensionless)
+
+precisions = ["Float32", "Float64"]
+
+# Count (not a physical input): the CPU test also tiles every batch column this
+# many times so every KernelAbstractions CPU launch exceeds the 1024-item CPU
+# grain size, spans several workgroups and runs on several threads, and
+# checks that every replica equals the single-copy batch result.
+batch_replicas = 1500
+
+# --------------------------------------------------------------------------
+# Two-stream closures. `kind` selects the method; NativeTwoStream controls are
+# dimensionless (thin_norm) and a count (source_terms).
+# --------------------------------------------------------------------------
+[methods.analytic]
+kind = "analytic"
+description = "AnalyticTwoStream closed-form layer operator"
+
+[methods.native]
+kind = "native"
+description = "NativeTwoStream thin-slab Taylor source plus repeated doubling"
+thin_norm = 0.05
+source_terms = 12
+
+# --------------------------------------------------------------------------
+# Differential canopy rates (CanopyRates fields), per unit LAI.
+# --------------------------------------------------------------------------
+[rates.generic]
+description = "moderately absorbing generic rates"
+absorption = 0.15
+backscatter = 0.08
+beam_up = 0.04
+beam_down = 0.05
+extinction = 0.65
+
+[rates.conservative]
+description = "zero absorption (conservative scattering, q = 0); beam_up + beam_down = extinction"
+absorption = 0.0
+backscatter = 0.35
+beam_up = 0.18
+beam_down = 0.22
+extinction = 0.40
+
+[rates.weak_absorption]
+description = "weak absorption; q = m^2 L^2 below eps^(1/4) at lai 0.3 in both precisions (small-q series)"
+absorption = 0.001
+backscatter = 0.3
+beam_up = 0.12
+beam_down = 0.14
+extinction = 0.5
+
+[rates.near_resonant]
+description = "diffuse eigenvalue m = sqrt(0.2 * 0.5) = 0.316228; extinction 0.3165 puts |k - m| L < 0.1 (resonant series branch)"
+absorption = 0.2
+backscatter = 0.15
+beam_up = 0.06
+beam_down = 0.07
+extinction = 0.3165
+
+[rates.strong_absorption]
+description = "strongly absorbing; extinction below the diffuse eigenvalue m = 0.8986 (k < m branch)"
+absorption = 0.85
+backscatter = 0.05
+beam_up = 0.02
+beam_down = 0.03
+extinction = 0.5
+
+# --------------------------------------------------------------------------
+# Homogeneous layers: a rate set plus a leaf area index. Every layer case is
+# recorded through layer_operator (all methods) and diffuse_response.
+# --------------------------------------------------------------------------
+[[layer_cases]]
+name = "generic_zero"
+description = "zero-LAI layer (identity operator shortcut)"
+rates = "generic"
+lai = 0.0
+
+[[layer_cases]]
+name = "generic_thin"
+description = "thin layer; q = 1.16e-4, just below the Float64 small-q threshold eps^(1/4) = 1.22e-4"
+rates = "generic"
+lai = 0.05
+
+[[layer_cases]]
+name = "generic_moderate"
+description = "moderate layer, regular branches"
+rates = "generic"
+lai = 1.3
+
+[[layer_cases]]
+name = "generic_thick"
+description = "optically thick layer, beam transmission exp(-26)"
+rates = "generic"
+lai = 40.0
+
+[[layer_cases]]
+name = "conservative_moderate"
+description = "conservative scattering, moderate depth"
+rates = "conservative"
+lai = 2.4
+
+[[layer_cases]]
+name = "conservative_thick"
+description = "conservative scattering, optically thick; k L = 20 > 18 (asymptotic small-q beam moments)"
+rates = "conservative"
+lai = 50.0
+
+[[layer_cases]]
+name = "weak_absorption_small_q"
+description = "weakly absorbing layer on the small-q series branch in both precisions"
+rates = "weak_absorption"
+lai = 0.3
+
+[[layer_cases]]
+name = "near_resonant_moderate"
+description = "beam extinction within 3e-4 of the diffuse eigenvalue"
+rates = "near_resonant"
+lai = 1.5
+
+[[layer_cases]]
+name = "strong_absorption_thin"
+description = "q = 2.0e-3: in Float64 the regular branch with both the |k - m| L and (k + m) L <= 0.1 series; in Float32 the small-q branch"
+rates = "strong_absorption"
+lai = 0.05
+
+[[layer_cases]]
+name = "strong_absorption_thick"
+description = "strongly absorbing layer, |k - m| L = 2.4 with k < m"
+rates = "strong_absorption"
+lai = 6.0
+
+# --------------------------------------------------------------------------
+# interior_flux: reconstruct (down, up, beam) at depth x inside a layer from
+# boundary fluxes. Recorded for every method.
+# --------------------------------------------------------------------------
+[[interior_flux_cases]]
+name = "generic_upper"
+layer = "generic_moderate"
+x = 0.4
+down_top = 0.3
+up_bottom = 0.05
+beam_top = 0.7
+
+[[interior_flux_cases]]
+name = "conservative_middle"
+layer = "conservative_moderate"
+x = 1.2
+down_top = 0.25
+up_bottom = 0.2
+beam_top = 0.75
+
+[[interior_flux_cases]]
+name = "near_resonant_lower"
+layer = "near_resonant_moderate"
+x = 1.1
+down_top = 0.4
+up_bottom = 0.1
+beam_top = 0.6
+
+# --------------------------------------------------------------------------
+# Passive column. Each column is a top-to-bottom list of layer cases solved
+# with one method under each listed scenario. Recorded paths: tuple
+# recursion, vector workspace, KernelAbstractions CPU batch (one batch column
+# per scenario).
+# --------------------------------------------------------------------------
+[passive_scenarios.direct_only_dark_soil]
+direct = 1.0
+diffuse = 0.0
+soil = 0.12
+
+[passive_scenarios.diffuse_only_black_soil]
+direct = 0.0
+diffuse = 1.0
+soil = 0.0
+
+[passive_scenarios.mixed_bright_soil]
+direct = 0.7
+diffuse = 0.3
+soil = 0.6
+
+[[passive_columns]]
+name = "empty"
+description = "zero layers: soil only"
+method = "analytic"
+layers = []
+scenarios = ["direct_only_dark_soil", "diffuse_only_black_soil", "mixed_bright_soil"]
+
+[[passive_columns]]
+name = "single"
+description = "one near-resonant layer"
+method = "analytic"
+layers = ["near_resonant_moderate"]
+scenarios = ["mixed_bright_soil"]
+
+[[passive_columns]]
+name = "stack"
+description = "thin layer, zero-LAI layer, conservative layer"
+method = "native"
+layers = ["generic_thin", "generic_zero", "conservative_moderate"]
+scenarios = ["direct_only_dark_soil", "diffuse_only_black_soil", "mixed_bright_soil"]
+
+# --------------------------------------------------------------------------
+# Volume emission closures. Uniform strengths are W m-2 per unit LAI.
+# Quadrature depths are a 3-point Gauss-Legendre rule on [0, 1].
+# --------------------------------------------------------------------------
+[emissions.none]
+kind = "none"
+
+[emissions.uniform]
+kind = "uniform"
+upward = 140.0
+downward = 135.0
+
+[emissions.quadrature]
+kind = "quadrature"
+depths = [0.1127016653792583, 0.5, 0.8872983346207417]
+weights = [0.2777777777777778, 0.4444444444444444, 0.2777777777777778]
+upward = [160.0, 150.0, 140.0]
+downward = [150.0, 141.0, 132.0]
+
+# emitting_layer(absorption, backscatter, lai, emission) on a layer case's
+# rates.absorption, rates.backscatter and lai.
+[[emitting_layer_cases]]
+layer = "generic_moderate"
+emission = "none"
+
+[[emitting_layer_cases]]
+layer = "generic_moderate"
+emission = "uniform"
+
+[[emitting_layer_cases]]
+layer = "generic_moderate"
+emission = "quadrature"
+
+[[emitting_layer_cases]]
+layer = "conservative_moderate"
+emission = "uniform"
+
+[[emitting_layer_cases]]
+layer = "generic_zero"
+emission = "quadrature"
+
+[[emitting_layer_cases]]
+layer = "strong_absorption_thick"
+emission = "uniform"
+
+# --------------------------------------------------------------------------
+# Emitting column. Recorded paths: solve_emitting_column tuple recursion,
+# vector workspace (solve_emitting_column and solve_emitting_column!), CPU
+# batch; plus solve_emission (tuple and vector) with each scenario's
+# soil_reflect.
+# --------------------------------------------------------------------------
+[emitting_scenarios.sky_and_soil]
+down_top = 310.0
+soil_reflect = 0.06
+soil_emit = 385.0
+
+[emitting_scenarios.sky_only_reflective_soil]
+down_top = 250.0
+soil_reflect = 0.3
+soil_emit = 0.0
+
+[[emitting_columns]]
+name = "empty"
+description = "zero layers: sky and soil only"
+layers = []
+scenarios = ["sky_and_soil", "sky_only_reflective_soil"]
+
+[[emitting_columns]]
+name = "single"
+description = "one uniformly emitting layer"
+layers = [{ layer = "generic_moderate", emission = "uniform" }]
+scenarios = ["sky_and_soil"]
+
+[[emitting_columns]]
+name = "stack"
+description = "uniform emitter, zero-LAI non-emitting layer, conservative quadrature emitter"
+layers = [
+    { layer = "generic_moderate", emission = "uniform" },
+    { layer = "generic_zero", emission = "none" },
+    { layer = "conservative_moderate", emission = "quadrature" },
+]
+scenarios = ["sky_and_soil", "sky_only_reflective_soil"]
+
+# --------------------------------------------------------------------------
+# Point sources and interior reconstruction inside one layer.
+# point_emission_response is recorded once per case (it does not depend on x).
+# --------------------------------------------------------------------------
+[[point_emission_cases]]
+name = "observer_above"
+layer = "generic_moderate"
+source_depth = 0.6
+x = 0.25
+upward = 0.4
+downward = 0.35
+
+[[point_emission_cases]]
+name = "observer_at_source"
+layer = "generic_moderate"
+source_depth = 0.6
+x = 0.6
+upward = 0.4
+downward = 0.35
+
+[[point_emission_cases]]
+name = "observer_below"
+layer = "conservative_moderate"
+source_depth = 0.9
+x = 1.7
+upward = 0.3
+downward = 0.5
+
+[[emission_interior_cases]]
+name = "none_upper"
+layer = "generic_moderate"
+emission = "none"
+x = 0.35
+down_top = 300.0
+up_bottom = 360.0
+
+[[emission_interior_cases]]
+name = "uniform_lower"
+layer = "generic_moderate"
+emission = "uniform"
+x = 1.0
+down_top = 300.0
+up_bottom = 360.0
+
+[[emission_interior_cases]]
+name = "quadrature_middle"
+layer = "generic_moderate"
+emission = "quadrature"
+x = 0.65
+down_top = 300.0
+up_bottom = 360.0
+
+[[emission_interior_cases]]
+name = "quadrature_conservative"
+layer = "conservative_moderate"
+emission = "quadrature"
+x = 1.9
+down_top = 300.0
+up_bottom = 360.0
+
+# --------------------------------------------------------------------------
+# Hemispheric moments and expansion. Arrays are given flat in Julia
+# column-major order with an explicit shape.
+#   weighted[orientation, depth, channel, batch]
+#   front, back [emission_bin, channel]
+# The scalar-path functions use weighted[:, :, :, 1].
+# --------------------------------------------------------------------------
+[hemispheric]
+mu = [-0.6, 0.15, 1.0]
+weighted_shape = [3, 2, 2, 2]
+weighted = [
+    0.31, 0.12, 0.47,
+    0.05, 0.22, 0.18,
+    0.61, 0.09, 0.27,
+    0.14, 0.38, 0.02,
+    0.29, 0.44, 0.11,
+    0.07, 0.53, 0.36,
+    0.19, 0.25, 0.41,
+    0.33, 0.06, 0.58,
+]
+emission_shape = [2, 2]
+front = [0.25, 0.10, 0.15, 0.20]
+back = [0.20, 0.12, 0.10, 0.18]
+
+[hemispheric.laws.lambertian]
+kind = "lambertian"
+
+[hemispheric.laws.mixed]
+kind = "mixed"
+lambertian_fraction = 0.7

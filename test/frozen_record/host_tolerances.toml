@@ -1,0 +1,27 @@
+# Host-dependent tolerances for the CanopyRadiation frozen numerical record.
+#
+# The record (reference.toml) is bit-for-bit reproducible on hosts whose CPU
+# has native fused multiply-add: checked on Julia 1.12.6 and 1.10.12, with and
+# without --check-bounds=yes, with 1 and 8 threads (Intel Xeon Platinum 8462Y+,
+# native target). On a target WITHOUT native FMA (checked with `julia -C x86-64`),
+# Base's Float32 `exp` evaluates its `muladd` polynomial without fusion and
+# returns results 1 ulp apart for some arguments. That changes exactly the
+# Float32 tables below by at most 1 eps of the reference value; every Float64
+# value and every other Float32 value stays bit-identical.
+#
+# This section is applied ONLY when Core.Intrinsics.have_fma(Float32) is false.
+# On FMA hosts (where the record was produced, and GitHub CI runners) the
+# comparison is exact. Measured, not estimated; do not widen without a review.
+
+[no_native_fma]
+tolerance_eps = 1.0
+keys = [
+    "Float32/layer_operator/analytic/generic_moderate",
+    "Float32/layer_operator/analytic/generic_thick",
+    "Float32/diffuse_response/generic_thick",
+    "Float32/layer_operator/analytic/near_resonant_moderate",
+    "Float32/passive/tuple/single/mixed_bright_soil",
+    "Float32/passive/vector/single/mixed_bright_soil",
+    "Float32/passive/batch/single/mixed_bright_soil",
+    "Float32/emission_interior/none_upper",
+]
