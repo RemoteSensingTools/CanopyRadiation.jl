@@ -356,21 +356,9 @@ end
     b = backscatter
     m2 = absorption * (absorption + FT(2) * b)
     q = m2 * lai * lai
-    if FT <: AbstractFloat && !iszero(q)
-        m = sqrt(m2)
-        z = m * lai
-        attenuation = exp(-z)
-        v = -expm1(-FT(2) * z) / (FT(2) * m)
-        eh = -expm1(-z) / m
-        w = (eh * eh) / FT(2)
-        denominator = (one(FT) + attenuation * attenuation) / FT(2) + a * v
-        return (;
-            reflection = b * v / denominator,
-            transmission = attenuation / denominator,
-            source_zero = v / denominator,
-            source_first = w / denominator,
-        )
-    elseif iszero(q) || (!(FT <: AbstractFloat) && primal(q) <= sqrt(sqrt(eps(P))))
+    # Even series at q = 0 and, for dual numbers, at small q (smooth derivatives through
+    # the conservative limit); closed form otherwise.
+    if iszero(q) || (!(FT <: AbstractFloat) && primal(q) <= sqrt(sqrt(eps(P))))
         vt = lai * even_sinh_s0(q)
         wt = (lai * lai) * even_cosh_m1_s1(q)
         dt = even_cosh_c0(q) + a * vt
@@ -462,10 +450,7 @@ end
     end
     m2 = alpha * (alpha + FT(2) * b)
     q_h = m2 * h * h
-    v = if FT <: AbstractFloat && !iszero(q_h)
-        m = sqrt(m2)
-        sinh(m * h) / m
-    elseif iszero(q_h) || (!(FT <: AbstractFloat) && primal(q_h) <= sqrt(sqrt(eps(P))))
+    v = if iszero(q_h) || (!(FT <: AbstractFloat) && primal(q_h) <= sqrt(sqrt(eps(P))))
         h * even_sinh_s0(q_h)
     else
         m = sqrt(m2)

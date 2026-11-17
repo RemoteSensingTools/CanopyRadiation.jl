@@ -1,3 +1,43 @@
+# ============================================================================
+# The two reductions, written once: shared by the scalar functions, the drivers'
+# kernels and the batch kernels (entries are read through ColumnView / RowView, so
+# the same code runs on host arrays and inside GPU kernels)
+# ============================================================================
+
+# Entries `data[row, offset + s]` of one row of a matrix, s = 0, 1, …; unchecked like
+# ColumnView (callers check axes first).
+struct RowView{A}
+    data::A
+    row::Int
+    offset::Int
+end
+@inline Base.getindex(r::RowView, s::Int) = @inbounds r.data[r.row, r.offset + s]
+
+# Hemisphere moments of one (depth, channel) entry over orientations s = 0, …, n - 1.
+@inline function _moment_sum(law, mu, weighted, n::Int, ::Type{FT}) where {FT}
+    plus, minus = zero(FT), zero(FT)
+    for s in 0:(n - 1)
+        e = leaf_hemispheric_emission(law, mu[s], weighted[s], zero(FT))
+        plus += convert(FT, e.upward)
+        minus += convert(FT, e.downward)
+    end
+    return (; plus, minus)
+end
+
+# Up and down source strengths of one depth over channels s = 0, …, n - 1.
+@inline function _bin_sum(plus, minus, front, back, n::Int, ::Type{FT}) where {FT}
+    u, v = zero(FT), zero(FT)
+    for s in 0:(n - 1)
+        fc = convert(FT, front[s])
+        bc = convert(FT, back[s])
+        p_dc = convert(FT, plus[s])
+        m_dc = convert(FT, minus[s])
+        u += fc * p_dc + bc * m_dc
+        v += fc * m_dc + bc * p_dc
+    end
+    return (; up = u, down = v)
+end
+
 """
     hemispheric_moment(law::AbstractEmissionAngularLaw, mu, weighted, depth_idx, channel_idx)
 
@@ -19,13 +59,14 @@ moments at `(depth_idx, channel_idx)`, respecting generic array axes.
         (depth_idx in axes(weighted, 2) && channel_idx in axes(weighted, 3)) ||
             throw(BoundsError(weighted, (:, depth_idx, channel_idx)))
     end
-    plus, minus = zero(FT), zero(FT)
-    @inbounds for o in eachindex(mu)
-        e = leaf_hemispheric_emission(law, mu[o], weighted[o, depth_idx, channel_idx], zero(FT))
-        plus += convert(FT, e.upward)
-        minus += convert(FT, e.downward)
-    end
-    return (; plus, minus)
+    o0 = firstindex(mu)
+    return _moment_sum(
+        law,
+        ColumnView(mu, o0, ()),
+        ColumnView(weighted, o0, (depth_idx, channel_idx)),
+        length(mu),
+        FT,
+    )
 end
 
 """
@@ -50,16 +91,15 @@ hemisphere moments `plus[depth_idx, :]` and `minus[depth_idx, :]` into
         depth_idx in axes(plus, 1) ||
             throw(BoundsError(plus, (depth_idx, :)))
     end
-    u, v = zero(FT), zero(FT)
-    @inbounds for c in axes(plus, 2)
-        fc = convert(FT, front[c])
-        bc = convert(FT, back[c])
-        p_dc = convert(FT, plus[depth_idx, c])
-        m_dc = convert(FT, minus[depth_idx, c])
-        u += fc * p_dc + bc * m_dc
-        v += fc * m_dc + bc * p_dc
-    end
-    return (; up = u, down = v)
+    c0 = firstindex(plus, 2)
+    return _bin_sum(
+        RowView(plus, depth_idx, c0),
+        RowView(minus, depth_idx, c0),
+        ColumnView(front, c0, ()),
+        ColumnView(back, c0, ()),
+        size(plus, 2),
+        FT,
+    )
 end
 
 @kernel function _hemispheric_moments_kernel!(
@@ -77,17 +117,10 @@ end
     FT = eltype(plus)
     d_idx = d0 + d_rel - 1
     c_idx = c0 + c_rel - 1
-    p_acc = zero(FT)
-    m_acc = zero(FT)
-    @inbounds for o_step in 0:(no - 1)
-        o_idx = o0 + o_step
-        e = leaf_hemispheric_emission(law, mu[o_idx], weighted[o_idx, d_idx, c_idx], zero(FT))
-        p_acc += convert(FT, e.upward)
-        m_acc += convert(FT, e.downward)
-    end
+    h = _moment_sum(law, ColumnView(mu, o0, ()), ColumnView(weighted, o0, (d_idx, c_idx)), no, FT)
     @inbounds begin
-        plus[d_idx, c_idx] = p_acc
-        minus[d_idx, c_idx] = m_acc
+        plus[d_idx, c_idx] = h.plus
+        minus[d_idx, c_idx] = h.minus
     end
 end
 
@@ -168,20 +201,17 @@ end
     d_rel = @index(Global, Linear)
     FT = eltype(up)
     d_idx = d0 + d_rel - 1
-    u_acc = zero(FT)
-    v_acc = zero(FT)
-    @inbounds for c_step in 0:(nc - 1)
-        c_idx = c0 + c_step
-        fc = convert(FT, front[c_idx])
-        bc = convert(FT, back[c_idx])
-        p_dc = convert(FT, plus[d_idx, c_idx])
-        m_dc = convert(FT, minus[d_idx, c_idx])
-        u_acc += fc * p_dc + bc * m_dc
-        v_acc += fc * m_dc + bc * p_dc
-    end
+    h = _bin_sum(
+        RowView(plus, d_idx, c0),
+        RowView(minus, d_idx, c0),
+        ColumnView(front, c0, ()),
+        ColumnView(back, c0, ()),
+        nc,
+        FT,
+    )
     @inbounds begin
-        up[d_idx] = u_acc
-        down[d_idx] = v_acc
+        up[d_idx] = h.up
+        down[d_idx] = h.down
     end
 end
 
@@ -263,17 +293,10 @@ end
     d = d0 + d_rel - 1
     c = c0 + c_rel - 1
     b = b0 + b_rel - 1
-    p_acc = zero(FT)
-    m_acc = zero(FT)
-    @inbounds for o_step in 0:(no - 1)
-        o = o0 + o_step
-        e = leaf_hemispheric_emission(law, mu[o], weighted[o, d, c, b], zero(FT))
-        p_acc += convert(FT, e.upward)
-        m_acc += convert(FT, e.downward)
-    end
+    h = _moment_sum(law, ColumnView(mu, o0, ()), ColumnView(weighted, o0, (d, c, b)), no, FT)
     @inbounds begin
-        plus[d, c, b] = p_acc
-        minus[d, c, b] = m_acc
+        plus[d, c, b] = h.plus
+        minus[d, c, b] = h.minus
     end
 end
 
@@ -333,20 +356,17 @@ end
     FT = eltype(up)
     d = d0 + d_rel - 1
     m = m0 + m_rel - 1
-    u_acc = zero(FT)
-    v_acc = zero(FT)
-    @inbounds for c_step in 0:(nc - 1)
-        c = c0 + c_step
-        fc = convert(FT, front[m, c])
-        bc = convert(FT, back[m, c])
-        p_dc = convert(FT, plus[d, c])
-        m_dc = convert(FT, minus[d, c])
-        u_acc += fc * p_dc + bc * m_dc
-        v_acc += fc * m_dc + bc * p_dc
-    end
+    h = _bin_sum(
+        RowView(plus, d, c0),
+        RowView(minus, d, c0),
+        RowView(front, m, c0),
+        RowView(back, m, c0),
+        nc,
+        FT,
+    )
     @inbounds begin
-        up[d, m] = u_acc
-        down[d, m] = v_acc
+        up[d, m] = h.up
+        down[d, m] = h.down
     end
 end
 
