@@ -9,6 +9,11 @@ order or return field changed, and every output of the frozen v0.1.0 numerical
 record (`test/frozen_record`) is bit-identical on the tuple, vector and batch paths.
 The version in `Project.toml` is not bumped.
 
+### Added
+- Package extension `CanopyRadiationForwardDiffExt` (weak dependency ForwardDiff
+  0.10 or 1): defines the scalar hooks for `ForwardDiff.Dual`, so AD behaves
+  identically on both ForwardDiff majors.
+
 ### Changed
 - Precision policy in one place (`src/precision.jl`) for the two-stream and emission
   core (`two_stream.jl`, `emission_transport.jl`) and the column batch kernels:

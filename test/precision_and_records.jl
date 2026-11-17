@@ -159,6 +159,7 @@ end
 end
 
 @testset "Scalar hooks" begin
+    @test Base.get_extension(CanopyRadiation, :CanopyRadiationForwardDiffExt) isa Module
     @test CR.primal_type(Float32) === Float32
     @test CR.primal_type(typeof(dual(1.0f0, 1.0f0))) === Float32
     @test CR.primal_type(typeof(dual(dual(1.0, 1.0), dual(0.0, 1.0)))) === Float64

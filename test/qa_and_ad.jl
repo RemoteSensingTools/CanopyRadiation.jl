@@ -19,7 +19,12 @@ include("forwarddiff_hooks.jl")
     @test check_all_qualified_accesses_via_owners(CanopyRadiation) === nothing
     @test check_no_self_qualified_accesses(CanopyRadiation) === nothing
     @static if VERSION >= v"1.11"
-        @test check_all_explicit_imports_are_public(CanopyRadiation) === nothing
+        # The ForwardDiff extension imports `Dual`, `value` and `partials`, which
+        # ForwardDiff documents but does not declare `public`.
+        @test check_all_explicit_imports_are_public(
+            CanopyRadiation;
+            ignore = (:Dual, :value, :partials),
+        ) === nothing
         @test check_all_qualified_accesses_are_public(CanopyRadiation) === nothing
     end
 
