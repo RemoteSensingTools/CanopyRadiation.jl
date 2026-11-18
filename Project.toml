@@ -1,7 +1,7 @@
 name = "CanopyRadiation"
 uuid = "c28997ff-bb01-467d-a412-f54fde40b11c"
 authors = ["Christian Frankenberg <cfranken@caltech.edu>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 CanopyOptics = "a18e34a6-5dbe-4f38-a44b-e5141852e7a7"

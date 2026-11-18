@@ -2,14 +2,14 @@
 
 All notable changes to `CanopyRadiation.jl` are documented in this file.
 
-## Unreleased
+## [0.2.0] - 2026-11-17
 
 Internal refactor of the whole package. No exported name was removed or renamed, no
 exported argument order or return field changed, and every output of the frozen
 v0.1.0 numerical records (`test/frozen_record`: core, remaining public API,
 CanopyOptics-dependent tables) is bit-identical on the tuple, vector and batch
 paths. Because of the precision policy and the scalar hooks below the release is
-**breaking** (not a patch release). The version in `Project.toml` is not bumped.
+**breaking**, hence 0.2.0 rather than a patch release.
 
 ### Added
 - Package extension `CanopyRadiationForwardDiffExt` (weak dependency ForwardDiff
